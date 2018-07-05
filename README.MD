@@ -3,7 +3,7 @@ Canopy
 
 A helper library for the Instructure Canvas API base on the basic request handling of Py3Canvas.
 
-Useage
+Usage
 ------
 
     from canopy import CanvasClient
