@@ -14,11 +14,17 @@ class CanvasAPIError(Exception):
 
 
 class CanvasClient(object):
-    def __init__(self, instance_address, access_token):
-        self.instance_address = instance_address
-        self.access_token = access_token
-        self.session = requests.session()
-        self.session.headers.update({'Authorization': 'Bearer {}'.format(self.access_token)})
+    def __init__(self, instance_address, access_token, catalog=False):
+        if not catalog:
+            self.instance_address = instance_address
+            self.access_token = access_token
+            self.session = requests.session()
+            self.session.headers.update({'Authorization': 'Bearer {}'.format(self.access_token)})
+        else:
+            self.instance_address = instance_address
+            self.access_token = access_token
+            self.session = requests.session()
+            self.session.headers.update({'Authorization': 'Token token=\"{}\"'.format(self.access_token)})
 
     # @staticmethod
     # def uri_for(a):
