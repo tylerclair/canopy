@@ -99,9 +99,9 @@ class CanvasClient(object):
         if method == 'GET':
             response = self.session.get(uri, params=params)
         elif method == 'POST':
-            response = self.session.get(uri, data=data)
+            response = self.session.post(uri, data=data)
         elif method == 'PUT':
-            response = self.session.get(uri, data=data)
+            response = self.session.put(uri, data=data)
         elif method == 'DELETE':
             response = self.session.delete(uri, params=params)
         else:
