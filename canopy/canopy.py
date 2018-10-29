@@ -120,5 +120,5 @@ class CanvasClient(object):
         if do_not_process:
             return response
         if no_data:
-            return response.status_code
+            return response.status_code()
         return response.json()
