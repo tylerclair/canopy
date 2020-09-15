@@ -100,9 +100,9 @@ class CanvasClient(object):
         if method == 'GET':
             response = self.session.get(uri, params=params, allow_redirects=allow_redirects)
         elif method == 'POST':
-            response = self.session.post(uri, data=data, allow_redirects=allow_redirects)
+            response = self.session.post(uri, data=data, params=None, allow_redirects=allow_redirects)
         elif method == 'PUT':
-            response = self.session.put(uri, data=data, allow_redirects=allow_redirects)
+            response = self.session.put(uri, data=data, params=None, allow_redirects=allow_redirects)
         elif method == 'DELETE':
             response = self.session.delete(uri, params=params, allow_redirects=allow_redirects)
         else:
@@ -130,11 +130,11 @@ class CanvasClient(object):
 
     def post(self, url, data=None, **kwargs):
         kwargs.setdefault('allow_redirects', True)
-        return self.base_request('POST', url, data=data, **kwargs)
+        return self.base_request('POST', url, data=data, params=None, **kwargs)
 
     def put(self, url, data=None, **kwargs):
         kwargs.setdefault('allow_redirects', True)
-        return self.base_request('PUT', url, data=data, **kwargs)
+        return self.base_request('PUT', url, data=data, params=None, **kwargs)
 
     def delete(self, url, params=None, **kwargs):
         kwargs.setdefault('allow_redirects', True)
