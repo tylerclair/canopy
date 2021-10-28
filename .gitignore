@@ -3,3 +3,9 @@ __pycache__/
 testing.py
 .vscode
 canopyws.code-workspace
+venv/
+
+# Dev files
+apis/
+test.py
+canvas_client.py
