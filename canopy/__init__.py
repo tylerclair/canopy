@@ -1,2 +1,1 @@
-from .canopy import *
-__all__ = ['CanvasClient', 'CanvasAPIError']
+from .canopy import CanvasAPIError, CanvasSession
