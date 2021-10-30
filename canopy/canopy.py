@@ -122,7 +122,7 @@ class CanvasSession(object):
     def get(self, url, params=None, **kwargs):
         kwargs.setdefault("allow_redirects", True)
         if "all_pages" in kwargs:
-            max_per_page_param = {"per_page": self.max_per_page, "page": 1}
+            max_per_page_param = {"per_page": self.max_per_page}
             combined_params = {**params, **max_per_page_param}
             return self.base_request("GET", url, params=combined_params, **kwargs)
         else:
