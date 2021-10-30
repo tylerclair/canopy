@@ -7,22 +7,23 @@ Usage
 ------
 
 **canvas_client.py**
-
+```python
     from apis.users import UsersAPI
     from canopy import CanvasSession
 
-    class CanvasClient(object):
-        def __init__(self, instance_address, access_token, max_per_page):
-            self.instance_address = instance_address
-            self.access_token = access_token
-            self.max_per_page = max_per_page
-            self.client = CanvasSession(
-                self.instance_address, self.access_token, self.max_per_page
-            )
-            self.users = UsersAPI(self.client)
+class CanvasClient(object):
+    def __init__(self, instance_address, access_token, max_per_page):
+        self.instance_address = instance_address
+        self.access_token = access_token
+        self.max_per_page = max_per_page
+        self.client = CanvasSession(
+            self.instance_address, self.access_token, self.max_per_page
+        )
+        self.users = UsersAPI(self.client)
+```
 
 **my_app.py**
-
+```python
     from canvas_client import CanvasClient
     import os
 
@@ -32,6 +33,7 @@ Usage
 
     user_profile = client.users.get_user_profile("self")
     print(user_profile)
+```
 
 API Builder
 -----------
