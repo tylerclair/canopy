@@ -3,6 +3,7 @@ import json
 from jinja2 import Environment, FileSystemLoader
 import os
 import requests
+from operator import itemgetter
 
 blacklist = []
 
@@ -119,7 +120,8 @@ def build_canvas_client_file(apifolder_path):
     env = get_jinja_env()
     client_template = env.get_template("canvas_client.py.jinja2")
     with open("canvas_client.py", "w") as client:
-        client.write(client_template.render(generated_api_files=generated_api_files))
+        # Sort generated_api_files list by base_name of each dict
+        client.write(client_template.render(generated_api_files=sorted(generated_api_files, key=itemgetter("base_name"))))
 
 
 # Build All APIs
