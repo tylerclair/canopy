@@ -1,0 +1,17 @@
+{% for api in generated_api_files %}
+from apis.{{api.base_name}} import {{api.class_name}}
+{% endfor %}
+from canopy import CanvasSession
+
+class CanvasClient(object):
+    def __init__(self, instance_address, access_token, max_per_page):
+        self.instance_address = instance_address
+        self.access_token = access_token
+        self.max_per_page = max_per_page
+        self.client = CanvasSession(
+            self.instance_address, self.access_token, self.max_per_page
+        )
+        # APIs
+        {% for api in generated_api_files %}
+        self.{{api.base_name}} = {{api.class_name}}(self.client)
+        {% endfor %}

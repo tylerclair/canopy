@@ -44,8 +44,6 @@ def get_jinja_env():
 
 
 # Build Single API file
-
-
 @click.command()
 @click.option(
     "--specfile", required=True, type=click.File(mode="r"), help="The json specfile."
@@ -58,10 +56,11 @@ def get_jinja_env():
     help="Path to output the API file to.",
 )
 def build_api_from_specfile(specfile, api_name, output_folder):
+    """Builds the specified API from the given spec file"""
     base_name = os.path.basename(specfile.name)
 
     click.echo(f"Generating code for specfile: {base_name}")
-
+    api_file_name = os.path.splitext(base_name)[0]
     output_file_name = base_name.replace(".json", ".py")
 
     if api_name is None:
@@ -87,9 +86,40 @@ def build_api_from_specfile(specfile, api_name, output_folder):
             api_template.render(
                 spec=spec,
                 api_name=api_name,
-                base_name=base_name,
+                api_file_name=api_file_name,
             )
         )
+
+
+# Build Canvas Client file
+@click.command()
+@click.option(
+    "--apifolder-path",
+    required=True,
+    type=click.Path(file_okay=False, readable=True),
+    help="Path for API files",
+)
+def build_canvas_client_file(apifolder_path):
+    """Builds the Canvas client file base on the generated APIs"""
+    apis = os.listdir(apifolder_path)
+    generated_api_files = []
+    # Add base api name and Class name to list
+    for api in apis:
+        base_name = os.path.splitext(api)[0]
+        extension_ = os.path.splitext(api)[1]
+        class_name = ""
+        if extension_ == ".py":
+            # print(base_name)
+            raw_base_name = base_name.split("_")
+            for i in raw_base_name:
+                class_name += i.capitalize()
+            generated_api_files.append(
+                {"base_name": base_name, "class_name": class_name}
+            )
+    env = get_jinja_env()
+    client_template = env.get_template("canvas_client.py.jinja2")
+    with open("canvas_client.py", "w") as client:
+        client.write(client_template.render(generated_api_files=generated_api_files))
 
 
 # Build All APIs
@@ -110,6 +140,7 @@ def build_api_from_specfile(specfile, api_name, output_folder):
 )
 @click.pass_context
 def build_all_apis(ctx, specfile_path, output_folder):
+    """Build All APIs from downloaded specfiles"""
     specs = os.listdir(specfile_path)
     for spec in specs:
         if not spec in blacklist:
@@ -161,6 +192,7 @@ def cli():
 
 
 cli.add_command(build_api_from_specfile)
+cli.add_command(build_canvas_client_file)
 cli.add_command(build_all_apis)
 cli.add_command(update_spec_files)
 
