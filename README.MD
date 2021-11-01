@@ -56,3 +56,16 @@ Generating code for specfile: analytics.json
 ...
 ```
 For more information on using this command  run `$ canvas_api_builder build-all-apis --help`
+
+## Usage in your project
+
+```python
+from canvas_client import CanvasClient
+
+canvas_url = "https://abc.instructure.com"
+token = "your_token_here"
+
+client = CanvasClient(canvas_url, token, max_per_page=100)
+user_profile = client.users.get_user_profile("self")
+print(user_profile)
+```
