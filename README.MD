@@ -1,40 +1,57 @@
-Canopy
-======
+# Canopy
+
 
 A helper library for the Instructure Canvas API base on the basic request handling of Py3Canvas and modified API spec files
 
-Usage
-------
+## Usage
 
-**canvas_client.py**
-```python
-    from apis.users import UsersAPI
-    from canopy import CanvasSession
+In your project create two folders: `specs` and `apis`. These will contain the API spec files downloaded from Canvas live documentation which has the openAPI spec files, and the generated API files used for making API calls. Install canopy by running `pip install git+https://github.com/tylerclair/canopy.git`
 
-class CanvasClient(object):
-    def __init__(self, instance_address, access_token, max_per_page):
-        self.instance_address = instance_address
-        self.access_token = access_token
-        self.max_per_page = max_per_page
-        self.client = CanvasSession(
-            self.instance_address, self.access_token, self.max_per_page
-        )
-        self.users = UsersAPI(self.client)
+You can now use the canvas_api_builer script to download the spec files, generate the Canvas API modules, and generate the canvas client file that you can use in your own projects. You can use this directly in your project or you can generate them in a seperate project, install canopy, and then move the apis folder and canvas client to your own project if desired.
+
+### Updating spec files
+
+```
+$ canvas_api_builder update-spec-files --specfile-path specs/
+Updated specs/api_token_scopes.json
+Updated specs/account_domain_lookups.json
+Updated specs/account_notifications.json
+Updated specs/account_reports.json
+Updated specs/accounts.json
+Updated specs/accounts_(lti).json
+Updated specs/admins.json
+Updated specs/analytics.json
+...
+```
+For more information on using this command  run `$ canvas_api_builder update-spec-files --help`
+
+### Build API from spec file
+
+```
+$ canvas_api_builder build-api-from-specfile --specfile accounts.json --output-folder apis/
+Generating code for specfile: accounts.json
+```
+For more information on using this command  run `$ canvas_api_builder build-api-from-specfile --help`
+
+### Build Canvas client file
+```
+$ canvas_api_builder build-canvas-client-file --apifolder-path apis/
+Generating canvas_client.py file
 ```
 
-**my_app.py**
-```python
-    from canvas_client import CanvasClient
-    import os
+### Build all APIs
+**Note: It is generally not recommended to generate all the APIs at this time**. There are many API endpoints that have issues that will cause the loading of the client to fail. Only after you correct *all* the issues within the API files will the client load without issues.
 
-    ACCESS_TOKEN = os.environ.get("CANVAS_TOKEN", None)
-    URL_INSTANCE = os.environ.get("PY3CANVAS_URL", None)
-    client = CanvasClient(URL_INSTANCE, ACCESS_TOKEN, max_per_page=100)
-
-    user_profile = client.users.get_user_profile("self")
-    print(user_profile)
 ```
-
-API Builder
------------
-The builder script will allow you to take the Canvas API Swagger JSON files and generate the API modules.
+$ canvas_api_builder build-all-apis --specfile-path specs/ --output-folder apis/
+Generating code for specfile: api_token_scopes.json
+Generating code for specfile: account_domain_lookups.json
+Generating code for specfile: account_notifications.json
+Generating code for specfile: account_reports.json
+Generating code for specfile: accounts.json
+Generating code for specfile: accounts_(lti).json
+Generating code for specfile: admins.json
+Generating code for specfile: analytics.json
+...
+```
+For more information on using this command  run `$ canvas_api_builder build-all-apis --help`
