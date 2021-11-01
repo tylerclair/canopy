@@ -122,9 +122,10 @@ def build_canvas_client_file(apifolder_path):
         # Sort generated_api_files list by base_name of each dict
         client.write(
             client_template.render(
+                apifolder_path=apifolder_path,
                 generated_api_files=sorted(
                     generated_api_files, key=itemgetter("base_name")
-                )
+                ),
             )
         )
 
