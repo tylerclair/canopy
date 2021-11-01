@@ -26,6 +26,7 @@ Updated specs/analytics.json
 For more information on using this command  run `$ canvas_api_builder update-spec-files --help`
 
 ### Build API from spec file
+**Note: The API modules are generated using a template. Make sure the code is valid before using it.**
 
 ```
 $ canvas_api_builder build-api-from-specfile --specfile accounts.json --output-folder apis/
