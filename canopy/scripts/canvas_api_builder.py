@@ -101,6 +101,7 @@ def build_api_from_specfile(specfile, api_name, output_folder):
 def build_canvas_client_file(apifolder_path):
     """Builds the Canvas client file base on the generated APIs"""
     click.echo("Generating canvas_client.py file")
+    api_module_path = apifolder_path.replace("/", ".")
     apis = os.listdir(apifolder_path)
     generated_api_files = []
     # Add base api name and Class name to list
@@ -122,7 +123,7 @@ def build_canvas_client_file(apifolder_path):
         # Sort generated_api_files list by base_name of each dict
         client.write(
             client_template.render(
-                apifolder_path=apifolder_path,
+                api_module_path=api_module_path,
                 generated_api_files=sorted(
                     generated_api_files, key=itemgetter("base_name")
                 ),
