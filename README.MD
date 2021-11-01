@@ -7,7 +7,7 @@ A helper library for the Instructure Canvas API base on the basic request handli
 
 In your project create two folders: `specs` and `apis`. These will contain the API spec files downloaded from Canvas live documentation which has the openAPI spec files, and the generated API files used for making API calls. Install canopy by running `pip install git+https://github.com/tylerclair/canopy.git#egg=canopy`
 
-You can now use the canvas_api_builer script to download the spec files, generate the Canvas API modules, and generate the canvas client file that you can use in your own projects. You can use this directly in your project or you can generate them in a seperate project, install canopy, and then move the apis folder and canvas client to your own project if desired.
+You can now use the canvas_api_builer script to download the spec files, generate the Canvas API modules, and generate the canvas client file that you can use in your own projects. You can use this directly in your project or you can generate them in a seperate project, install Canopy, and then move the apis folder and canvas client to your own project if desired.
 
 ### Updating spec files
 
@@ -29,7 +29,7 @@ For more information on using this command  run `$ canvas_api_builder update-spe
 **Note: The API modules are generated using a template. Make sure the code is valid before using it.**
 
 ```
-$ canvas_api_builder build-api-from-specfile --specfile accounts.json --output-folder apis/
+$ canvas_api_builder build-api-from-specfile --specfile specs/accounts.json --output-folder apis/
 Generating code for specfile: accounts.json
 ```
 For more information on using this command  run `$ canvas_api_builder build-api-from-specfile --help`
