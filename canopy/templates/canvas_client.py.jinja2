@@ -1,5 +1,5 @@
 {% for api in generated_api_files %}
-from {{api_module_path}}.{{api.base_name}} import {{api.class_name}}
+from {{api_module_path}}{{api.base_name}} import {{api.class_name}}
 {% endfor %}
 from canopy import CanvasSession
 
