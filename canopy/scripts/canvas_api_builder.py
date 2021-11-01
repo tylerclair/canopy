@@ -1,6 +1,6 @@
 import click
 import json
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, PackageLoader
 import os
 import requests
 from operator import itemgetter
@@ -35,9 +35,7 @@ def service_param_string(params):
 
 
 def get_jinja_env():
-    loader = FileSystemLoader(
-        os.path.join(os.path.abspath(os.path.dirname(__file__)), "templates")
-    )
+    loader = PackageLoader("canopy", "templates")
     env = Environment(loader=loader, trim_blocks=True, lstrip_blocks=True)
     env.filters["fix_param_name"] = fix_param_name
     env.filters["service_param_string"] = service_param_string
@@ -102,6 +100,7 @@ def build_api_from_specfile(specfile, api_name, output_folder):
 )
 def build_canvas_client_file(apifolder_path):
     """Builds the Canvas client file base on the generated APIs"""
+    click.echo("Generating canvas_client.py file")
     apis = os.listdir(apifolder_path)
     generated_api_files = []
     # Add base api name and Class name to list
@@ -121,7 +120,13 @@ def build_canvas_client_file(apifolder_path):
     client_template = env.get_template("canvas_client.py.jinja2")
     with open("canvas_client.py", "w") as client:
         # Sort generated_api_files list by base_name of each dict
-        client.write(client_template.render(generated_api_files=sorted(generated_api_files, key=itemgetter("base_name"))))
+        client.write(
+            client_template.render(
+                generated_api_files=sorted(
+                    generated_api_files, key=itemgetter("base_name")
+                )
+            )
+        )
 
 
 # Build All APIs
