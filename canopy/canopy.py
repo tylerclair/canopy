@@ -73,7 +73,8 @@ class CanvasSession(object):
         single_item=False,
         all_pages=False,
         do_not_process=False,
-        no_data=False,
+        status_code=False,
+        raw_response=False,
         force_urlencode_data=False,
         allow_redirects=True,
     ):
@@ -115,8 +116,10 @@ class CanvasSession(object):
             return self.depaginate(response, data_key)
         if do_not_process:
             return response
-        if no_data:
+        if status_code:
             return response.status_code
+        if raw_response:
+            return response.raw
         return response.json()
 
     def get(self, url, params=None, **kwargs):
