@@ -99,6 +99,7 @@ def build_api_from_specfile(specfile, api_name, output_folder):
     help="Path for API files",
 )
 def build_canvas_client_file(apifolder_path):
+    excluded_files = ["canvas_client.py", "__init__.py"]
     """Builds the Canvas client file base on the generated APIs"""
     click.echo("Generating canvas_client.py file")
     api_module_path = apifolder_path.replace("/", ".")
@@ -106,7 +107,7 @@ def build_canvas_client_file(apifolder_path):
     generated_api_files = []
     # Add base api name and Class name to list
     for api in apis:
-        if not api == "canvas_client.py":
+        if api not in excluded_files:
             base_name = os.path.splitext(api)[0]
             extension_ = os.path.splitext(api)[1]
             class_name = ""
