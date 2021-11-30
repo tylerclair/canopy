@@ -106,17 +106,18 @@ def build_canvas_client_file(apifolder_path):
     generated_api_files = []
     # Add base api name and Class name to list
     for api in apis:
-        base_name = os.path.splitext(api)[0]
-        extension_ = os.path.splitext(api)[1]
-        class_name = ""
-        if extension_ == ".py":
-            # print(base_name)
-            raw_base_name = base_name.split("_")
-            for i in raw_base_name:
-                class_name += i.capitalize()
-            generated_api_files.append(
-                {"base_name": base_name, "class_name": class_name}
-            )
+        if not api == "canvas_client.py":
+            base_name = os.path.splitext(api)[0]
+            extension_ = os.path.splitext(api)[1]
+            class_name = ""
+            if extension_ == ".py":
+                # print(base_name)
+                raw_base_name = base_name.split("_")
+                for i in raw_base_name:
+                    class_name += i.capitalize()
+                generated_api_files.append(
+                    {"base_name": base_name, "class_name": class_name}
+                )
     env = get_jinja_env()
     client_template = env.get_template("canvas_client.py.jinja2")
     with open("canvas_client.py", "w") as client:
