@@ -45,10 +45,20 @@ def get_jinja_env():
 # Build Single API file
 @click.command()
 @click.option(
-    "--specfile", required=True, type=click.File(mode="r"), help="The json specfile."
+    "-s",
+    "--specfile",
+    required=True,
+    type=click.File(mode="r"),
+    help="The json specfile.",
 )
-@click.option("--api-name", type=str, help="The name of the api class. Defaults to ")
 @click.option(
+    "-a",
+    "--api-name",
+    type=str,
+    help="The name of the api class. Defaults to specfile base name",
+)
+@click.option(
+    "-o",
     "--output-folder",
     required=True,
     type=click.Path(file_okay=False, writable=True),
@@ -93,6 +103,7 @@ def build_api_from_specfile(specfile, api_name, output_folder):
 # Build Canvas Client file
 @click.command()
 @click.option(
+    "-a",
     "--apifolder-path",
     required=True,
     type=click.Path(file_okay=False, readable=True),
@@ -138,12 +149,14 @@ def build_canvas_client_file(apifolder_path):
 
 @click.command()
 @click.option(
+    "-s",
     "--specfile-path",
     required=True,
     type=click.Path(file_okay=False, readable=True),
     help="Path for specfiles",
 )
 @click.option(
+    "-o",
     "--output-folder",
     required=True,
     type=click.Path(file_okay=False, writable=True),
@@ -172,6 +185,7 @@ def build_all_apis(ctx, specfile_path, output_folder):
 
 @click.command()
 @click.option(
+    "-s",
     "--specfile-path",
     required=True,
     type=click.Path(file_okay=False, readable=True),
