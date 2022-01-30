@@ -4,8 +4,10 @@ testing.py
 .vscode
 canopyws.code-workspace
 venv/
+.venv/
 build/
 *.egg-info/
+
 
 # Dev files
 apis/
