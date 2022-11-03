@@ -48,7 +48,7 @@ def get_jinja_env():
     "-s",
     "--specfile",
     required=True,
-    type=click.File(mode="r"),
+    type=click.File(mode="r", encoding="utf-8"),
     help="The json specfile.",
 )
 @click.option(
