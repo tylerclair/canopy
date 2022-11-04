@@ -14,7 +14,7 @@ data["{{param.name}}"] = {{param.name|fix_param_name}}
 {% endif %}
 {% if param.paramType == "query" and param.name == "include" %}
 params["{{param.name}}[]"] = {{param.name|fix_param_name}}
-{% else %}
+{% elif param.paramType == "query" %}
 params["{{param.name}}"] = {{param.name|fix_param_name}}
 {% endif %}
 {% endmacro %}
