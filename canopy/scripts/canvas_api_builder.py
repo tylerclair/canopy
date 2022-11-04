@@ -4,6 +4,8 @@ from jinja2 import Environment, PackageLoader
 import os
 import requests
 from operator import itemgetter
+import keyword
+from pathlib import Path
 
 blacklist = []
 
@@ -11,6 +13,8 @@ blacklist = []
 def fix_param_name(name):
     if name[-1:] == "]":
         return name.replace("[", "_").replace("]", "")
+    elif keyword.iskeyword(name) or keyword.issoftkeyword(name):
+        return f"_{name}"
     else:
         return name
 
@@ -104,17 +108,21 @@ def build_api_from_specfile(specfile, api_name, output_folder):
 @click.command()
 @click.option(
     "-a",
-    "--apifolder-path",
+    "--apis-folder",
     required=True,
     type=click.Path(file_okay=False, readable=True),
-    help="Path for API files",
+    help="Folder with API files",
 )
-def build_canvas_client_file(apifolder_path):
+def build_canvas_client_file(apis_folder):
     excluded_files = ["canvas_client.py", "__init__.py"]
     """Builds the Canvas client file base on the generated APIs"""
-    click.echo("Generating canvas_client.py file")
-    api_module_path = apifolder_path.replace("/", ".")
-    apis = os.listdir(apifolder_path)
+    click.echo(f"Generating canvas_client.py file in {Path(apis_folder).resolve()}")
+    if apis_folder.endswith("/"):
+        api_module_path = apis_folder.replace("/", ".")
+    else:
+        api_module_path = apis_folder + "/"
+        api_module_path = api_module_path.replace("/", ".")
+    apis = os.listdir(apis_folder)
     generated_api_files = []
     # Add base api name and Class name to list
     for api in apis:
@@ -150,7 +158,7 @@ def build_canvas_client_file(apifolder_path):
 @click.command()
 @click.option(
     "-s",
-    "--specfile-path",
+    "--specs-folder",
     required=True,
     type=click.Path(file_okay=False, readable=True),
     help="Path for specfiles",
@@ -163,12 +171,12 @@ def build_canvas_client_file(apifolder_path):
     help="Path to output the API file to.",
 )
 @click.pass_context
-def build_all_apis(ctx, specfile_path, output_folder):
+def build_all_apis(ctx, specs_folder, output_folder):
     """Build All APIs from downloaded specfiles"""
-    specs = os.listdir(specfile_path)
+    specs = os.listdir(specs_folder)
     for spec in specs:
         if not spec in blacklist:
-            specfile = os.path.join(specfile_path, spec)
+            specfile = os.path.join(specs_folder, spec)
             with open(specfile, "r") as f:
                 ctx.invoke(
                     build_api_from_specfile,
@@ -181,19 +189,17 @@ def build_all_apis(ctx, specfile_path, output_folder):
 
 
 # Update spec files
-
-
 @click.command()
 @click.option(
     "-s",
-    "--specfile-path",
+    "--specs-folder",
     required=True,
     type=click.Path(file_okay=False, readable=True),
     help="Path for specfiles",
 )
-def update_spec_files(specfile_path):
+def update_spec_files(specs_folder):
     """Update spec files from Instructure API docs"""
-    # specs = os.listdir(specfile_path)
+    # specs = os.listdir(specs_folder)
     docsFile = "api-docs.json"
     baseUrl = "https://canvas.instructure.com/doc/api/"
     specs = requests.get(f"{baseUrl}{docsFile}").json()
@@ -201,7 +207,7 @@ def update_spec_files(specfile_path):
         specName = spec["path"][1:]
         r = requests.get(f"{baseUrl}{specName}")
         if r.status_code == 200:
-            specFile = os.path.join(specfile_path, specName)
+            specFile = os.path.join(specs_folder, specName)
             with open(specFile, "wb") as f:
                 f.write(r.content)
                 click.echo(f"Updated {specFile}")

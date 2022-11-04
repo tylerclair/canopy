@@ -12,7 +12,9 @@ elif issubclass({{param.name|fix_param_name}}.__class__, date) or issubclass({{p
 {% if param.paramType == "form" %}
 data["{{param.name}}"] = {{param.name|fix_param_name}}
 {% endif %}
-{% if param.paramType == "query" %}
+{% if param.paramType == "query" and param.name == "include" %}
+params["{{param.name}}[]"] = {{param.name|fix_param_name}}
+{% else %}
 params["{{param.name}}"] = {{param.name|fix_param_name}}
 {% endif %}
 {% endmacro %}
