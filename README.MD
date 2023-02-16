@@ -57,6 +57,19 @@ Generating code for specfile: analytics.json
 ```
 For more information on using this command  run `$ canvas_api_builder build-all-apis --help`
 
+
+## Manually testing canvas_api_builder commands
+
+You can use the Python REPL to run the builder commands manually. I suggest creating separate test folders for your apis, spec files, and canvas client files. Open the Python REPL by entering `python` in a shell from the root of the package.
+
+import the specific command from the `canvas_api_builder.py` file.
+```
+>>> from canopy.scripts.canvas_api_builder import build_api_from_specfile
+>>> build_api_from_specfile.main(["-s", "tests/specs/sections.json", "-o", "tests/apis"])
+Generating code for specfile: sections.json
+```
+Once a command is ran it will exit the REPL and you will have to launch it again and repeat the process for additional commands. In the future I may create a test file for the commands, but for now any changes can be tested using this manual method.
+
 ## Usage in your project
 
 ```python
