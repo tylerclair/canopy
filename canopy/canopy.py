@@ -75,7 +75,6 @@ class CanvasSession(object):
         do_not_process=False,
         no_data=False,
         force_urlencode_data=False,
-        allow_redirects=True,
     ):
         """Base Canvas Request Method"""
         if not uri.startswith("http"):
@@ -86,21 +85,28 @@ class CanvasSession(object):
 
         if method == "GET":
             response = self.session.get(
-                uri, params=params, allow_redirects=allow_redirects
+                uri,
+                params=params,
             )
         elif method == "POST":
             response = self.session.post(
-                uri, data=data, allow_redirects=allow_redirects
+                uri,
+                data=data,
             )
         elif method == "PUT":
-            response = self.session.put(uri, data=data, allow_redirects=allow_redirects)
+            response = self.session.put(
+                uri,
+                data=data,
+            )
         elif method == "DELETE":
             response = self.session.delete(
-                uri, params=params, allow_redirects=allow_redirects
+                uri,
+                params=params,
             )
         else:
             response = self.session.get(
-                uri, params=params, allow_redirects=allow_redirects
+                uri,
+                params=params,
             )
 
         response.raise_for_status()
@@ -120,7 +126,6 @@ class CanvasSession(object):
         return response.json()
 
     def get(self, url, params=None, **kwargs):
-        kwargs.setdefault("allow_redirects", True)
         if "all_pages" in kwargs:
             max_per_page_param = {"per_page": self.max_per_page}
             combined_params = {**params, **max_per_page_param}
@@ -129,15 +134,12 @@ class CanvasSession(object):
             return self.base_request("GET", url, params=params, **kwargs)
 
     def post(self, url, data=None, **kwargs):
-        kwargs.setdefault("allow_redirects", True)
         return self.base_request("POST", url, data=data, **kwargs)
 
     def put(self, url, data=None, **kwargs):
-        kwargs.setdefault("allow_redirects", True)
         return self.base_request("PUT", url, data=data, **kwargs)
 
     def delete(self, url, params=None, **kwargs):
-        kwargs.setdefault("allow_redirects", True)
         return self.base_request("DELETE", url, params=params, **kwargs)
 
 
