@@ -4,7 +4,7 @@ import requests
 
 
 class CanvasSession(object):
-    def __init__(self, instance_address, access_token, max_per_page=50):
+    def __init__(self, instance_address, access_token, max_per_page=100):
         self.instance_address = instance_address
         self.access_token = access_token
         self.max_per_page = max_per_page
