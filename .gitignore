@@ -15,3 +15,4 @@ specs/
 test.py
 canvas_client.py
 .env.local
+testing/

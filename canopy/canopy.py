@@ -1,3 +1,4 @@
+import asyncio
 import urllib.parse
 
 import requests
@@ -133,14 +134,41 @@ class CanvasSession(object):
         else:
             return self.base_request("GET", url, params=params, **kwargs)
 
+    async def async_get(self, url, params=None, **kwargs):
+        if "all_pages" in kwargs:
+            max_per_page_param = {"per_page": self.max_per_page}
+            combined_params = {**params, **max_per_page_param}
+            return await asyncio.to_thread(
+                self.base_request, "GET", url, params=combined_params, **kwargs
+            )
+        else:
+            return await asyncio.to_thread(
+                self.base_request, "GET", url, params=params, **kwargs
+            )
+
     def post(self, url, data=None, **kwargs):
         return self.base_request("POST", url, data=data, **kwargs)
+
+    async def async_post(self, url, data=None, **kwargs):
+        return await asyncio.to_thread(
+            self.base_request, "POST", url, data=data, **kwargs
+        )
 
     def put(self, url, data=None, **kwargs):
         return self.base_request("PUT", url, data=data, **kwargs)
 
+    async def async_put(self, url, data=None, **kwargs):
+        return await asyncio.to_thread(
+            self.base_request, "PUT", url, data=data, **kwargs
+        )
+
     def delete(self, url, params=None, **kwargs):
         return self.base_request("DELETE", url, params=params, **kwargs)
+
+    async def async_post(self, url, params=None, **kwargs):
+        return await asyncio.to_thread(
+            self.base_request, "DELETE", url, params=params, **kwargs
+        )
 
 
 class CanvasAPIError(Exception):
