@@ -68,11 +68,13 @@ def get_jinja_env():
     type=click.Path(file_okay=False, writable=True),
     help="Path to output the API file to.",
 )
-def build_api_from_specfile(specfile, api_name, output_folder):
+@click.option(
+    "--generate-async", is_flag=True, default=False, help="Generate async version"
+)
+def build_api_from_specfile(specfile, api_name, output_folder, generate_async):
     """Builds the specified API from the given spec file"""
     base_name = os.path.basename(specfile.name)
 
-    click.echo(f"Generating code for specfile: {base_name}")
     api_file_name = os.path.splitext(base_name)[0]
     output_file_name = base_name.replace(".json", ".py")
 
@@ -93,15 +95,30 @@ def build_api_from_specfile(specfile, api_name, output_folder):
     spec = json.load(specfile)
 
     env = get_jinja_env()
-    api_template = env.get_template("canopy_api.py.jinja2")
-    with open(os.path.join(output_folder, output_file_name), "w") as api:
-        api.write(
-            api_template.render(
-                spec=spec,
-                api_name=api_name,
-                api_file_name=api_file_name,
+    if not generate_async:
+        click.echo(f"Generating code for specfile: {base_name}")
+        api_template = env.get_template("canopy_api.py.jinja2")
+        with open(os.path.join(output_folder, output_file_name), "w") as api:
+            api.write(
+                api_template.render(
+                    spec=spec,
+                    api_name=api_name,
+                    api_file_name=api_file_name,
+                )
             )
-        )
+    else:
+        click.echo(f"Generating async code for specfile: {base_name}")
+        async_api_file_name = os.path.splitext(base_name)[0]
+        async_output_file_name = f"{async_api_file_name}_async.py"
+        api_template = env.get_template("canopy_api_async.py.jinja2")
+        with open(os.path.join(output_folder, async_output_file_name), "w") as api:
+            api.write(
+                api_template.render(
+                    spec=spec,
+                    api_name=api_name,
+                    api_file_name=f"{api_file_name}_async",
+                )
+            )
 
 
 # Build Canvas Client file

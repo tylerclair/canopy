@@ -1,0 +1,63 @@
+{% macro enum_values(enum) %}[{% for i in enum %}"{{i}}"{% if not loop.last %}, {% endif %}{% endfor %}]{% endmacro %}
+{% macro param_body(param) %}
+{% if param.enum %}
+_validate_enum({{param.name|fix_param_name}}, {{enum_values(param.enum)}})
+{% endif %}
+{% if param.type|lower == "datetime" %}
+if issubclass({{param.name|fix_param_name}}.__class__, str):
+    {{param.name|fix_param_name}} = _validate_iso8601_string({{param.name|fix_param_name}})
+elif issubclass({{param.name|fix_param_name}}.__class__, date) or issubclass({{param.name|fix_param_name}}.__class__, datetime):
+    {{param.name|fix_param_name}} = {{param.name|fix_param_name}}.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+{% endif %}
+{% if param.paramType == "form" %}
+data["{{param.name}}"] = {{param.name|fix_param_name}}
+{% endif %}
+{% if param.paramType == "query" and param.name == "include" %}
+params["{{param.name}}[]"] = {{param.name|fix_param_name}}
+{% elif param.paramType == "query" %}
+params["{{param.name}}"] = {{param.name|fix_param_name}}
+{% endif %}
+{% endmacro %}
+"""{{api_name}} API Version {{spec.apiVersion|default("1.0")}}.
+
+This API client was generated using a template. Make sure this code is valid before using it.
+"""
+from datetime import date, datetime
+from canopy.helpers import _validate_enum, _validate_iso8601_string
+
+class {{api_name}}Async(object):
+    """{{api_name}} API Version {{spec.apiVersion|default("1.0")}}."""
+
+    def __init__(self, client):
+        """Init method for {{api_name}}API."""
+        self.client = client
+
+    {% for api in spec.apis %}
+    {% for op in api.operations %}
+    async def {{op.nickname}}(self{% if op.parameters|length > 0 %}, {% endif %}{{op.parameters|service_param_string}}):
+        """
+        {{op.summary}}{% if not op.summary.endswith('.') %}.{% endif %}
+
+
+        {% for i in op.notes.split('\n') %}
+        {{i|indent(8)}}
+        {% endfor %}
+        """
+        client = self.client
+        data = {}
+        params = {}
+        {% if op.parameters|length > 0 %}
+        {% for param in op.parameters %}
+        # {% if param.required %}REQUIRED{% else %}OPTIONAL{% endif %}{% if param.paramType == 'path' %} - PATH{% endif %} - {{param.name}}
+        {% if param.required %}
+        {{ param_body(param)|indent(8) }}
+        {% else %}
+        if {{param.name|fix_param_name}} is not None:
+            {{ param_body(param)|indent(12) }}
+        {% endif %}
+        {% endfor %}{# param in op.parameters #}
+        {% endif %}{# op.parameters|length > 0 #}
+        return await client.async_{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 'void' %}, no_data=True{% endif %}{% if op.type not in ['array', 'void'] and op.type[0] == op.type[0].upper() %}, single_item=True{% endif %})
+
+    {% endfor %}
+    {% endfor %}
