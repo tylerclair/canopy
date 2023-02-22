@@ -210,7 +210,59 @@ def build_all_apis(ctx, specs_folder, output_folder):
             continue
 
 
+# Rebuild APIs
+
+
+@click.command()
+@click.option(
+    "-s",
+    "--specs-folder",
+    required=True,
+    type=click.Path(file_okay=False, readable=True),
+    help="Path for specfiles",
+)
+@click.option(
+    "-a",
+    "--apifolder-path",
+    required=True,
+    type=click.Path(file_okay=False, writable=True),
+    help="Path for API files",
+)
+@click.pass_context
+def rebuild_apis(ctx, specs_folder, apifolder_path):
+    """Build All APIs from downloaded specfiles"""
+    apis = os.listdir(apifolder_path)
+    apis_list = [
+        file for file in apis if os.path.isfile(os.path.join(apifolder_path, file))
+    ]
+    for api in apis_list:
+        specfilename = f"{os.path.splitext(api)[0]}.json"
+        if not "async" in specfilename:
+            specfile = os.path.join(specs_folder, specfilename)
+            with open(specfile, "r") as f:
+                ctx.invoke(
+                    build_api_from_specfile,
+                    specfile=f,
+                    api_name=None,
+                    output_folder=apifolder_path,
+                )
+        else:
+            basespecfilename = os.path.splitext(api)[0].replace("_async", "")
+            specfilename = f"{basespecfilename}.json"
+            specfile = os.path.join(specs_folder, specfilename)
+            with open(specfile, "r") as f:
+                ctx.invoke(
+                    build_api_from_specfile,
+                    specfile=f,
+                    api_name=None,
+                    output_folder=apifolder_path,
+                    generate_async=True,
+                )
+
+
 # Update spec files
+
+
 @click.command()
 @click.option(
     "-s",
@@ -260,6 +312,7 @@ cli.add_command(build_api_from_specfile)
 cli.add_command(build_canvas_client_file)
 cli.add_command(build_all_apis)
 cli.add_command(update_spec_files)
+cli.add_command(rebuild_apis)
 
 if __name__ == "__main__":
     cli()
