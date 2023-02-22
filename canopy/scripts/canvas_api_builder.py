@@ -1,6 +1,6 @@
 import click
 import json
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, FileSystemLoader, PackageLoader
 import os
 import requests
 from operator import itemgetter
@@ -12,7 +12,7 @@ blacklist = []
 
 def fix_param_name(name):
     if name[-1:] == "]":
-        return name.replace("[", "_").replace("]", "")
+        return name.replace("[", "_").replace("]", "").replace("<", "").replace(">", "")
     elif keyword.iskeyword(name) or keyword.issoftkeyword(name):
         return f"_{name}"
     else:
@@ -39,7 +39,12 @@ def service_param_string(params):
 
 
 def get_jinja_env():
-    loader = PackageLoader("canopy", "templates")
+    try:
+        loader = PackageLoader("canopy", "templates")
+    except ModuleNotFoundError:
+        loader = FileSystemLoader(
+            os.path.join(os.path.abspath(os.path.dirname(__file__)), "../templates")
+        )
     env = Environment(loader=loader, trim_blocks=True, lstrip_blocks=True)
     env.filters["fix_param_name"] = fix_param_name
     env.filters["service_param_string"] = service_param_string
