@@ -75,6 +75,7 @@ class CanvasSession(object):
         all_pages=False,
         do_not_process=False,
         no_data=False,
+        poly_response=False,
         force_urlencode_data=False,
     ):
         """Base Canvas Request Method"""
@@ -85,10 +86,7 @@ class CanvasSession(object):
             uri += "?" + urllib.parse.urlencode(data)
 
         if method == "GET":
-            response = self.session.get(
-                uri,
-                params=params,
-            )
+            response = self.session.get(uri, params=params)
         elif method == "POST":
             response = self.session.post(
                 uri,
@@ -124,10 +122,20 @@ class CanvasSession(object):
             return response
         if no_data:
             return response.status_code
+        if poly_response:
+            r = response.json()
+            if isinstance(r, list):
+                if self.has_pagination_links(response):
+                    return self.depaginate(response, data_key)
+                else:
+                    return self.extract_data_from_response(response, data_key)
+            else:
+                return r
+
         return response.json()
 
     def get(self, url, params=None, **kwargs):
-        if "all_pages" in kwargs:
+        if "all_pages" in kwargs or "poly_response" in kwargs:
             max_per_page_param = {"per_page": self.max_per_page}
             combined_params = {**params, **max_per_page_param}
             return self.base_request("GET", url, params=combined_params, **kwargs)
@@ -135,7 +143,7 @@ class CanvasSession(object):
             return self.base_request("GET", url, params=params, **kwargs)
 
     async def async_get(self, url, params=None, **kwargs):
-        if "all_pages" in kwargs:
+        if "all_pages" in kwargs or "poly_response" in kwargs:
             max_per_page_param = {"per_page": self.max_per_page}
             combined_params = {**params, **max_per_page_param}
             return await asyncio.to_thread(

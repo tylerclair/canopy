@@ -34,7 +34,7 @@ class {{api_name}}(object):
 
     {% for api in spec.apis %}
     {% for op in api.operations %}
-    def {{op.nickname}}(self{% if op.parameters|length > 0 %}, {% endif %}{{op.parameters|service_param_string}}):
+    def {{op.nickname}}(self{% if op.parameters|length > 0 %}, {% endif %}{{op.parameters|service_param_string}}, do_not_process=None, no_data=None):
         """
         {{op.summary}}{% if not op.summary.endswith('.') %}.{% endif %}
 
@@ -57,7 +57,11 @@ class {{api_name}}(object):
         {% endif %}
         {% endfor %}{# param in op.parameters #}
         {% endif %}{# op.parameters|length > 0 #}
-        return client.{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 'void' %}, no_data=True{% endif %}{% if op.type not in ['array', 'void'] and op.type[0] == op.type[0].upper() %}, single_item=True{% endif %})
+        if do_not_process is not None:
+            return client.{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params, do_not_process=do_not_process)
+        if no_data is not None:
+            return client.{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params, no_data=no_data)
+        return client.{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 'void' %}, poly_response=True{% endif %}{% if op.type not in ['array', 'void'] and op.type[0] == op.type[0].upper() %}, single_item=True{% endif %})
 
     {% endfor %}
     {% endfor %}

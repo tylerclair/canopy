@@ -57,7 +57,7 @@ class {{api_name}}Async(object):
         {% endif %}
         {% endfor %}{# param in op.parameters #}
         {% endif %}{# op.parameters|length > 0 #}
-        return await client.async_{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 'void' %}, no_data=True{% endif %}{% if op.type not in ['array', 'void'] and op.type[0] == op.type[0].upper() %}, single_item=True{% endif %})
+        return await client.async_{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 'void' %}, poly_response=True{% endif %}{% if op.type not in ['array', 'void'] and op.type[0] == op.type[0].upper() %}, single_item=True{% endif %})
 
     {% endfor %}
     {% endfor %}
