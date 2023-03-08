@@ -231,33 +231,35 @@ def build_all_apis(ctx, specs_folder, output_folder):
 @click.pass_context
 def rebuild_apis(ctx, specs_folder, apifolder_path):
     """Build All APIs from downloaded specfiles"""
+    excluded_files = ["canvas_client.py", "__init__.py"]
     apis = os.listdir(apifolder_path)
     apis_list = [
         file for file in apis if os.path.isfile(os.path.join(apifolder_path, file))
     ]
     for api in apis_list:
-        specfilename = f"{os.path.splitext(api)[0]}.json"
-        if not "async" in specfilename:
-            specfile = os.path.join(specs_folder, specfilename)
-            with open(specfile, "r") as f:
-                ctx.invoke(
-                    build_api_from_specfile,
-                    specfile=f,
-                    api_name=None,
-                    output_folder=apifolder_path,
-                )
-        else:
-            basespecfilename = os.path.splitext(api)[0].replace("_async", "")
-            specfilename = f"{basespecfilename}.json"
-            specfile = os.path.join(specs_folder, specfilename)
-            with open(specfile, "r") as f:
-                ctx.invoke(
-                    build_api_from_specfile,
-                    specfile=f,
-                    api_name=None,
-                    output_folder=apifolder_path,
-                    generate_async=True,
-                )
+        if api not in excluded_files:
+            specfilename = f"{os.path.splitext(api)[0]}.json"
+            if not "async" in specfilename:
+                specfile = os.path.join(specs_folder, specfilename)
+                with open(specfile, "r") as f:
+                    ctx.invoke(
+                        build_api_from_specfile,
+                        specfile=f,
+                        api_name=None,
+                        output_folder=apifolder_path,
+                    )
+            else:
+                basespecfilename = os.path.splitext(api)[0].replace("_async", "")
+                specfilename = f"{basespecfilename}.json"
+                specfile = os.path.join(specs_folder, specfilename)
+                with open(specfile, "r") as f:
+                    ctx.invoke(
+                        build_api_from_specfile,
+                        specfile=f,
+                        api_name=None,
+                        output_folder=apifolder_path,
+                        generate_async=True,
+                    )
 
 
 # Update spec files
