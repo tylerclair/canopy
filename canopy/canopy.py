@@ -1,6 +1,6 @@
 import asyncio
 import urllib.parse
-
+import json
 import requests
 
 
@@ -84,55 +84,59 @@ class CanvasSession(object):
 
         if force_urlencode_data is True:
             uri += "?" + urllib.parse.urlencode(data)
-
-        if method == "GET":
-            response = self.session.get(uri, params=params)
-        elif method == "POST":
-            response = self.session.post(
-                uri,
-                data=data,
-            )
-        elif method == "PUT":
-            response = self.session.put(
-                uri,
-                data=data,
-            )
-        elif method == "DELETE":
-            response = self.session.delete(
-                uri,
-                params=params,
-            )
-        else:
-            response = self.session.get(
-                uri,
-                params=params,
-            )
-
-        response.raise_for_status()
-
-        if single_item:
-            r = response.json()
-            if data_key:
-                return r[data_key]
+        try:
+            if method == "GET":
+                response = self.session.get(uri, params=params)
+            elif method == "POST":
+                response = self.session.post(
+                    uri,
+                    data=data,
+                )
+            elif method == "PUT":
+                response = self.session.put(
+                    uri,
+                    data=data,
+                )
+            elif method == "DELETE":
+                response = self.session.delete(
+                    uri,
+                    params=params,
+                )
             else:
-                return r
-        if all_pages:
-            return self.depaginate(response, data_key)
-        if do_not_process:
-            return response
-        if no_data:
-            return response.status_code
-        if poly_response:
-            r = response.json()
-            if isinstance(r, list):
-                if self.has_pagination_links(response):
-                    return self.depaginate(response, data_key)
+                response = self.session.get(
+                    uri,
+                    params=params,
+                )
+
+            if response.status_code >= 400:
+                raise CanvasAPIError(response)
+
+            if single_item:
+                r = response.json()
+                if data_key:
+                    return r[data_key]
                 else:
-                    return self.extract_data_from_response(response, data_key)
-            else:
-                return r
+                    return r
+            if all_pages:
+                return self.depaginate(response, data_key)
+            if do_not_process:
+                return response
+            if no_data:
+                return response.status_code
+            if poly_response:
+                r = response.json()
+                if isinstance(r, list):
+                    if self.has_pagination_links(response):
+                        return self.depaginate(response, data_key)
+                    else:
+                        return self.extract_data_from_response(response, data_key)
+                else:
+                    return r
 
-        return response.json()
+            return response.json()
+        except CanvasAPIError as e:
+            # raise CanvasAPIError(response) from e
+            print(e.to_json())
 
     def get(self, url, params=None, **kwargs):
         if "all_pages" in kwargs or "poly_response" in kwargs:
@@ -183,8 +187,25 @@ class CanvasAPIError(Exception):
     def __init__(self, response):
         self.response = response
 
-    def __unicode__(self):
-        return f"API Request Failed. Status: {self.response.status_code} Content: {self.response.content}"
-
     def __str__(self):
         return f"API Request Failed. Status: {self.response.status_code} Content: {self.response.content}"
+
+    def to_json(self):
+        # Return a JSON representation of the error
+        return json.dumps(
+            {
+                "status_code": self.response.status_code,
+                "content": (
+                    self.response.json()
+                    if self._is_json()
+                    else self.response.content.decode("utf-8")
+                ),
+            },
+        )
+
+    def _is_json(self):
+        try:
+            self.response.json()
+            return True
+        except ValueError:
+            return False

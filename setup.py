@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 from os import path
 
-__version__ = "2023.03.03"
+__version__ = "2024.09.17"
 here = path.abspath(path.dirname(__file__))
 
 # get the dependencies and installs
