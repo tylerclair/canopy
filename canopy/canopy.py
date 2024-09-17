@@ -177,7 +177,7 @@ class CanvasSession(object):
     def delete(self, url, params=None, **kwargs):
         return self.base_request("DELETE", url, params=params, **kwargs)
 
-    async def async_post(self, url, params=None, **kwargs):
+    async def async_delete(self, url, params=None, **kwargs):
         return await asyncio.to_thread(
             self.base_request, "DELETE", url, params=params, **kwargs
         )
