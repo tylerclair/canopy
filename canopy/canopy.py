@@ -108,8 +108,7 @@ class CanvasSession(object):
                     params=params,
                 )
 
-            if response.status_code >= 400:
-                raise CanvasAPIError(response)
+            response.raise_for_status()
 
             if single_item:
                 r = response.json()
@@ -134,9 +133,14 @@ class CanvasSession(object):
                     return r
 
             return response.json()
-        except CanvasAPIError as e:
-            # raise CanvasAPIError(response) from e
-            print(e.to_json())
+        except requests.exceptions.HTTPError as e:
+            raise CanvasAPIError(response) from e
+        except requests.exceptions.Timeout as e:
+            print("The request timed out.")
+        except requests.exceptions.ConnectionError as e:
+            print("A connection error occurred:", e)
+        except requests.exceptions.RequestException as e:
+            print("An error occurred:", e)
 
     def get(self, url, params=None, **kwargs):
         if "all_pages" in kwargs or "poly_response" in kwargs:
@@ -186,26 +190,18 @@ class CanvasSession(object):
 class CanvasAPIError(Exception):
     def __init__(self, response):
         self.response = response
+        self.status_code = response.status_code
+        self.content = response.json()
 
     def __str__(self):
-        return f"API Request Failed. Status: {self.response.status_code} Content: {self.response.content}"
+        # Make sure the exception message shows the important details
+        return f"CanvasAPIError: Status {self.status_code} - Content: {self.content}"
 
     def to_json(self):
         # Return a JSON representation of the error
         return json.dumps(
             {
-                "status_code": self.response.status_code,
-                "content": (
-                    self.response.json()
-                    if self._is_json()
-                    else self.response.content.decode("utf-8")
-                ),
+                "status_code": self.status_code,
+                "content": self.content,
             },
         )
-
-    def _is_json(self):
-        try:
-            self.response.json()
-            return True
-        except ValueError:
-            return False
