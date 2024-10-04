@@ -2,7 +2,7 @@ from os import path
 
 from setuptools import find_packages, setup
 
-__version__ = "2024.10.03"
+__version__ = "2024.10.03.1"
 here = path.abspath(path.dirname(__file__))
 
 # get the dependencies and installs
