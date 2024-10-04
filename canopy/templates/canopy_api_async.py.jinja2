@@ -34,7 +34,7 @@ class {{api_name}}Async(object):
 
     {% for api in spec.apis %}
     {% for op in api.operations %}
-    async def {{op.nickname}}(self{% if op.parameters|length > 0 %}, {% endif %}{{op.parameters|service_param_string}}, do_not_process=None, no_data=None):
+    async def {{op.nickname}}(self{% if op.parameters|length > 0 %}, {% endif %}{{op.parameters|service_param_string}}, as_user_id=None, do_not_process=None, no_data=None):
         """
         {{op.summary}}{% if not op.summary.endswith('.') %}.{% endif %}
 
@@ -57,6 +57,8 @@ class {{api_name}}Async(object):
         {% endif %}
         {% endfor %}{# param in op.parameters #}
         {% endif %}{# op.parameters|length > 0 #}
+        if as_user_id is not None:
+            params["as_user_id"] = as_user_id
         if do_not_process is not None:
             return await client.async_{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params, do_not_process=do_not_process)
         if no_data is not None:
