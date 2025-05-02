@@ -187,8 +187,9 @@ class CanvasSession(object):
         )
 
 
-class CanvasAPIError(Exception):
+class CanvasAPIError(requests.HTTPError):
     def __init__(self, response):
+        super().__init__(f"CanvasAPIError: Status {response.status_code}")
         self.response = response
         self.status_code = response.status_code
         self.content = response.json()
