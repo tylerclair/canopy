@@ -197,7 +197,7 @@ def build_all_apis(ctx, specs_folder, output_folder):
     """Build All APIs from downloaded specfiles"""
     specs = os.listdir(specs_folder)
     for spec in specs:
-        if not spec in blacklist:
+        if spec not in blacklist:
             specfile = os.path.join(specs_folder, spec)
             with open(specfile, "r") as f:
                 ctx.invoke(
@@ -239,7 +239,7 @@ def rebuild_apis(ctx, specs_folder, apifolder_path):
     for api in apis_list:
         if api not in excluded_files:
             specfilename = f"{os.path.splitext(api)[0]}.json"
-            if not "async" in specfilename:
+            if "async" not in specfilename:
                 specfile = os.path.join(specs_folder, specfilename)
                 with open(specfile, "r") as f:
                     ctx.invoke(

@@ -2,7 +2,7 @@ import re
 
 
 def _validate_enum(value, acceptable_values):
-    if not type(value) == list:
+    if not isinstance(value, list):
         if value in acceptable_values:
             return value
         else:

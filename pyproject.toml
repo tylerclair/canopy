@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "canopy"
-version = "2024.10.03.1"
+version = "2025.05.02"
 description = "Helper for Instructure Canvas API"
 readme = "README.md"
 dependencies = [
