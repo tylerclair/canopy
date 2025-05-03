@@ -1,0 +1,47 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "canopy"
+version = "2024.10.03.1"
+description = "Helper for Instructure Canvas API"
+readme = "README.md"
+dependencies = [
+    "requests>=2.32.3",
+    "click>=8.1.8",
+    "jinja2>=3.1.6",
+]
+[project.optional-dependencies]
+extras = [
+    "aiolimiter>=1.2.1",
+    "python-dotenv>=1.1.0",
+]
+[[project.authors]]
+name = "Tyler Clair"
+email = "tyler.clair@gmail.com"
+
+[project.license]
+text = "MIT"
+
+[project.urls]
+Homepage = "https://github.com/tylerclair/canopy"
+Repository = "https://github.com/tylerclair/canopy"
+
+[project.scripts]
+canvas_api_builder = "canopy.scripts.canvas_api_builder:cli"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+exclude = [
+    "docs",
+    "tests*",
+]
+
+[tool.setuptools.package-data]
+canopy = ["templates/*.jinja2"]
