@@ -14,10 +14,10 @@ class CanvasSession(object):
 
     def extract_data_from_response(self, response, data_key=None):
         response_json_data = response.json()
-        if type(response_json_data) == list:
+        if isinstance(response_json_data, list):
             # Return the data
             return response_json_data
-        elif type(response_json_data) == dict:
+        elif isinstance(response_json_data, dict):
             if data_key is None:
                 return response_json_data
             else:
@@ -39,7 +39,7 @@ class CanvasSession(object):
         all_data = []
         this_data = self.extract_data_from_response(response, data_key=data_key)
         if this_data is not None:
-            if type(this_data) == list:
+            if isinstance(this_data, list):
                 all_data += this_data
             else:
                 all_data.append(this_data)
@@ -54,7 +54,7 @@ class CanvasSession(object):
                         response, data_key=data_key
                     )
                     if this_data is not None:
-                        if type(this_data) == list:
+                        if isinstance(this_data, list):
                             all_data += this_data
                         else:
                             all_data.append(this_data)
@@ -135,7 +135,7 @@ class CanvasSession(object):
             return response.json()
         except requests.exceptions.HTTPError as e:
             raise CanvasAPIError(response) from e
-        except requests.exceptions.Timeout as e:
+        except requests.exceptions.Timeout:
             print("The request timed out.")
         except requests.exceptions.ConnectionError as e:
             print("A connection error occurred:", e)
