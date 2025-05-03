@@ -20,8 +20,12 @@ setup(
     author_email="tyler.clair@gmail.com",
     license="MIT",
     packages=find_packages(exclude=["docs", "tests*"]),
+    package_data={
+        "canopy": ["templates/*.jinja2"],
+    },
     include_package_data=True,
     install_requires=install_requires,
+    extras_require={"optional": ["aiolimiter", "python-dotenv"]},
     entry_points={
         "console_scripts": [
             "canvas_api_builder = canopy.scripts.canvas_api_builder:cli",
