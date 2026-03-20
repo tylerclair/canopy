@@ -1,11 +1,12 @@
-import click
 import json
-from jinja2 import Environment, FileSystemLoader, PackageLoader
-import os
-import requests
-from operator import itemgetter
 import keyword
+import os
+from operator import itemgetter
 from pathlib import Path
+
+import click
+import requests
+from jinja2 import Environment, FileSystemLoader, PackageLoader
 
 blacklist = []
 
@@ -20,7 +21,7 @@ def fix_param_name(name):
 
 
 def service_param_string(params):
-    """Takes a param section from a metadata class and returns a param string for the service method"""
+    """Build a param string for the service method from a metadata class param section."""
     p = []
     k = []
     for param in params:
@@ -31,7 +32,7 @@ def service_param_string(params):
             if "default" in param:
                 k.append("{name}={default}".format(name=name, default=param["default"]))
             else:
-                k.append("{name}=None".format(name=name))
+                k.append(f"{name}=None")
     p.sort()
     k.sort()
     a = p + k
@@ -73,9 +74,7 @@ def get_jinja_env():
     type=click.Path(file_okay=False, writable=True),
     help="Path to output the API file to.",
 )
-@click.option(
-    "--generate-async", is_flag=True, default=False, help="Generate async version"
-)
+@click.option("--generate-async", is_flag=True, default=False, help="Generate async version")
 def build_api_from_specfile(specfile, api_name, output_folder, generate_async):
     """Builds the specified API from the given spec file"""
     base_name = os.path.basename(specfile.name)
@@ -157,9 +156,7 @@ def build_canvas_client_file(apis_folder):
                 raw_base_name = base_name.split("_")
                 for i in raw_base_name:
                     class_name += i.capitalize()
-                generated_api_files.append(
-                    {"base_name": base_name, "class_name": class_name}
-                )
+                generated_api_files.append({"base_name": base_name, "class_name": class_name})
     env = get_jinja_env()
     client_template = env.get_template("canvas_client.py.jinja2")
     with open("canvas_client.py", "w") as client:
@@ -167,9 +164,7 @@ def build_canvas_client_file(apis_folder):
         client.write(
             client_template.render(
                 api_module_path=api_module_path,
-                generated_api_files=sorted(
-                    generated_api_files, key=itemgetter("base_name")
-                ),
+                generated_api_files=sorted(generated_api_files, key=itemgetter("base_name")),
             )
         )
 
@@ -199,7 +194,7 @@ def build_all_apis(ctx, specs_folder, output_folder):
     for spec in specs:
         if spec not in blacklist:
             specfile = os.path.join(specs_folder, spec)
-            with open(specfile, "r") as f:
+            with open(specfile) as f:
                 ctx.invoke(
                     build_api_from_specfile,
                     specfile=f,
@@ -233,15 +228,13 @@ def rebuild_apis(ctx, specs_folder, apifolder_path):
     """Build All APIs from downloaded specfiles"""
     excluded_files = ["canvas_client.py", "__init__.py"]
     apis = os.listdir(apifolder_path)
-    apis_list = [
-        file for file in apis if os.path.isfile(os.path.join(apifolder_path, file))
-    ]
+    apis_list = [file for file in apis if os.path.isfile(os.path.join(apifolder_path, file))]
     for api in apis_list:
         if api not in excluded_files:
             specfilename = f"{os.path.splitext(api)[0]}.json"
             if "async" not in specfilename:
                 specfile = os.path.join(specs_folder, specfilename)
-                with open(specfile, "r") as f:
+                with open(specfile) as f:
                     ctx.invoke(
                         build_api_from_specfile,
                         specfile=f,
@@ -252,7 +245,7 @@ def rebuild_apis(ctx, specs_folder, apifolder_path):
                 basespecfilename = os.path.splitext(api)[0].replace("_async", "")
                 specfilename = f"{basespecfilename}.json"
                 specfile = os.path.join(specs_folder, specfilename)
-                with open(specfile, "r") as f:
+                with open(specfile) as f:
                     ctx.invoke(
                         build_api_from_specfile,
                         specfile=f,
