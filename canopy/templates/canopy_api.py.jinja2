@@ -4,10 +4,7 @@
 _validate_enum({{param.name|fix_param_name}}, {{enum_values(param.enum)}})
 {% endif %}
 {% if param.type|lower == "datetime" %}
-if issubclass({{param.name|fix_param_name}}.__class__, str):
-    {{param.name|fix_param_name}} = _validate_iso8601_string({{param.name|fix_param_name}})
-elif issubclass({{param.name|fix_param_name}}.__class__, date) or issubclass({{param.name|fix_param_name}}.__class__, datetime):
-    {{param.name|fix_param_name}} = {{param.name|fix_param_name}}.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+{{param.name|fix_param_name}} = coerce_to_iso8601({{param.name|fix_param_name}})
 {% endif %}
 {% if param.paramType == "form" %}
 data["{{param.name}}"] = {{param.name|fix_param_name}}
@@ -23,9 +20,9 @@ params["{{param.name}}"] = {{param.name|fix_param_name}}
 This API client was generated using a template. Make sure this code is valid before using it.
 """
 from datetime import date, datetime
-from canopy.helpers import _validate_enum, _validate_iso8601_string
+from canopy.helpers import _validate_enum, coerce_to_iso8601
 
-class {{api_name}}(object):
+class {{api_name}}:
     """{{api_name}} API Version {{spec.apiVersion|default("1.0")}}."""
 
     def __init__(self, client):
