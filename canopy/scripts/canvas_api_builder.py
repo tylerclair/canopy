@@ -1,17 +1,16 @@
 import json
 import keyword
-import os
 from operator import itemgetter
 from pathlib import Path
 
 import click
-import requests
+import httpx
 from jinja2 import Environment, FileSystemLoader, PackageLoader
 
-blacklist = []
+blacklist: list[str] = []
 
 
-def fix_param_name(name):
+def fix_param_name(name: str) -> str:
     if name[-1:] == "]":
         return name.replace("[", "_").replace("]", "").replace("<", "").replace(">", "")
     elif keyword.iskeyword(name) or keyword.issoftkeyword(name):
@@ -20,7 +19,7 @@ def fix_param_name(name):
         return name
 
 
-def service_param_string(params):
+def service_param_string(params: list[dict]) -> str:
     """Build a param string for the service method from a metadata class param section."""
     p = []
     k = []
@@ -30,26 +29,28 @@ def service_param_string(params):
             p.append(name)
         else:
             if "default" in param:
-                k.append("{name}={default}".format(name=name, default=param["default"]))
+                k.append(f"{name}={param['default']}")
             else:
                 k.append(f"{name}=None")
     p.sort()
     k.sort()
-    a = p + k
-    return ", ".join(a)
+    return ", ".join(p + k)
 
 
-def get_jinja_env():
+def get_jinja_env() -> Environment:
     try:
-        loader = PackageLoader("canopy", "templates")
+        loader: PackageLoader | FileSystemLoader = PackageLoader("canopy", "templates")
     except ModuleNotFoundError:
-        loader = FileSystemLoader(
-            os.path.join(os.path.abspath(os.path.dirname(__file__)), "../templates")
-        )
+        loader = FileSystemLoader(Path(__file__).parent.parent / "templates")
     env = Environment(loader=loader, trim_blocks=True, lstrip_blocks=True)
     env.filters["fix_param_name"] = fix_param_name
     env.filters["service_param_string"] = service_param_string
     return env
+
+
+def _snake_to_pascal(name: str) -> str:
+    """Convert a snake_case filename stem to PascalCase class name."""
+    return "".join(part.capitalize() for part in name.split("_"))
 
 
 # Build Single API file
@@ -71,58 +72,42 @@ def get_jinja_env():
     "-o",
     "--output-folder",
     required=True,
-    type=click.Path(file_okay=False, writable=True),
+    type=click.Path(file_okay=False, writable=True, path_type=Path),
     help="Path to output the API file to.",
 )
 @click.option("--generate-async", is_flag=True, default=False, help="Generate async version")
-def build_api_from_specfile(specfile, api_name, output_folder, generate_async):
-    """Builds the specified API from the given spec file"""
-    base_name = os.path.basename(specfile.name)
-
-    api_file_name = os.path.splitext(base_name)[0]
-    output_file_name = base_name.replace(".json", ".py")
+def build_api_from_specfile(
+    specfile: click.File,
+    api_name: str | None,
+    output_folder: Path,
+    generate_async: bool,
+) -> None:
+    """Build the specified API from the given spec file."""
+    spec_path = Path(specfile.name)
+    base_name = spec_path.name
+    api_file_name = spec_path.stem
 
     if api_name is None:
-        raw_api_name = list(base_name[: base_name.find(".")])
-        api_name = ""
-        capitalize = True
-        for i in raw_api_name:
-            if i == "_":
-                capitalize = True
-                continue
-            if capitalize is True:
-                api_name += i.capitalize()
-                capitalize = False
-            else:
-                api_name += i
+        api_name = _snake_to_pascal(api_file_name)
 
     spec = json.load(specfile)
-
     env = get_jinja_env()
+
     if not generate_async:
         click.echo(f"Generating code for specfile: {base_name}")
+        output_path = output_folder / f"{api_file_name}.py"
         api_template = env.get_template("canopy_api.py.jinja2")
-        with open(os.path.join(output_folder, output_file_name), "w") as api:
-            api.write(
-                api_template.render(
-                    spec=spec,
-                    api_name=api_name,
-                    api_file_name=api_file_name,
-                )
-            )
+        output_path.write_text(
+            api_template.render(spec=spec, api_name=api_name, api_file_name=api_file_name)
+        )
     else:
         click.echo(f"Generating async code for specfile: {base_name}")
-        async_api_file_name = os.path.splitext(base_name)[0]
-        async_output_file_name = f"{async_api_file_name}_async.py"
+        async_file_name = f"{api_file_name}_async"
+        output_path = output_folder / f"{async_file_name}.py"
         api_template = env.get_template("canopy_api_async.py.jinja2")
-        with open(os.path.join(output_folder, async_output_file_name), "w") as api:
-            api.write(
-                api_template.render(
-                    spec=spec,
-                    api_name=api_name,
-                    api_file_name=f"{api_file_name}_async",
-                )
-            )
+        output_path.write_text(
+            api_template.render(spec=spec, api_name=api_name, api_file_name=async_file_name)
+        )
 
 
 # Build Canvas Client file
@@ -131,139 +116,109 @@ def build_api_from_specfile(specfile, api_name, output_folder, generate_async):
     "-a",
     "--apis-folder",
     required=True,
-    type=click.Path(file_okay=False, readable=True),
+    type=click.Path(file_okay=False, readable=True, path_type=Path),
     help="Folder with API files",
 )
-def build_canvas_client_file(apis_folder):
-    excluded_files = ["canvas_client.py", "__init__.py"]
-    """Builds the Canvas client file base on the generated APIs"""
-    click.echo(f"Generating canvas_client.py file in {Path(apis_folder).resolve()}")
-    if apis_folder.endswith("/"):
-        api_module_path = apis_folder.replace("/", ".")
-    else:
-        api_module_path = apis_folder + "/"
-        api_module_path = api_module_path.replace("/", ".")
-    apis = os.listdir(apis_folder)
+def build_canvas_client_file(apis_folder: Path) -> None:
+    """Build the Canvas client file based on the generated APIs."""
+    excluded_files = {"canvas_client.py", "__init__.py"}
+    click.echo(f"Generating canvas_client.py file in {apis_folder.resolve()}")
+
+    api_module_path = str(apis_folder).rstrip("/").replace("/", ".") + "."
+
     generated_api_files = []
-    # Add base api name and Class name to list
-    for api in apis:
-        if api not in excluded_files:
-            base_name = os.path.splitext(api)[0]
-            extension_ = os.path.splitext(api)[1]
-            class_name = ""
-            if extension_ == ".py":
-                # print(base_name)
-                raw_base_name = base_name.split("_")
-                for i in raw_base_name:
-                    class_name += i.capitalize()
-                generated_api_files.append({"base_name": base_name, "class_name": class_name})
+    for api_path in apis_folder.iterdir():
+        if api_path.name not in excluded_files and api_path.suffix == ".py":
+            generated_api_files.append(
+                {
+                    "base_name": api_path.stem,
+                    "class_name": _snake_to_pascal(api_path.stem),
+                }
+            )
+
     env = get_jinja_env()
     client_template = env.get_template("canvas_client.py.jinja2")
-    with open("canvas_client.py", "w") as client:
-        # Sort generated_api_files list by base_name of each dict
-        client.write(
-            client_template.render(
-                api_module_path=api_module_path,
-                generated_api_files=sorted(generated_api_files, key=itemgetter("base_name")),
-            )
+    Path("canvas_client.py").write_text(
+        client_template.render(
+            api_module_path=api_module_path,
+            generated_api_files=sorted(generated_api_files, key=itemgetter("base_name")),
         )
+    )
 
 
 # Build All APIs
-
-
 @click.command()
 @click.option(
     "-s",
     "--specs-folder",
     required=True,
-    type=click.Path(file_okay=False, readable=True),
+    type=click.Path(file_okay=False, readable=True, path_type=Path),
     help="Path for specfiles",
 )
 @click.option(
     "-o",
     "--output-folder",
     required=True,
-    type=click.Path(file_okay=False, writable=True),
+    type=click.Path(file_okay=False, writable=True, path_type=Path),
     help="Path to output the API file to.",
 )
 @click.pass_context
-def build_all_apis(ctx, specs_folder, output_folder):
-    """Build All APIs from downloaded specfiles"""
-    specs = os.listdir(specs_folder)
-    for spec in specs:
-        if spec not in blacklist:
-            specfile = os.path.join(specs_folder, spec)
-            with open(specfile) as f:
+def build_all_apis(ctx: click.Context, specs_folder: Path, output_folder: Path) -> None:
+    """Build all APIs from downloaded specfiles."""
+    for spec_path in specs_folder.iterdir():
+        if spec_path.name not in blacklist:
+            with spec_path.open() as f:
                 ctx.invoke(
                     build_api_from_specfile,
                     specfile=f,
                     api_name=None,
                     output_folder=output_folder,
                 )
-        else:
-            continue
 
 
 # Rebuild APIs
-
-
 @click.command()
 @click.option(
     "-s",
     "--specs-folder",
     required=True,
-    type=click.Path(file_okay=False, readable=True),
+    type=click.Path(file_okay=False, readable=True, path_type=Path),
     help="Path for specfiles",
 )
 @click.option(
     "-a",
     "--apifolder-path",
     required=True,
-    type=click.Path(file_okay=False, writable=True),
+    type=click.Path(file_okay=False, writable=True, path_type=Path),
     help="Path for API files",
 )
 @click.pass_context
-def rebuild_apis(ctx, specs_folder, apifolder_path):
-    """Build All APIs from downloaded specfiles"""
-    excluded_files = ["canvas_client.py", "__init__.py"]
-    apis = os.listdir(apifolder_path)
-    apis_list = [file for file in apis if os.path.isfile(os.path.join(apifolder_path, file))]
-    for api in apis_list:
-        if api not in excluded_files:
-            specfilename = f"{os.path.splitext(api)[0]}.json"
-            if "async" not in specfilename:
-                specfile = os.path.join(specs_folder, specfilename)
-                with open(specfile) as f:
-                    ctx.invoke(
-                        build_api_from_specfile,
-                        specfile=f,
-                        api_name=None,
-                        output_folder=apifolder_path,
-                    )
-            else:
-                basespecfilename = os.path.splitext(api)[0].replace("_async", "")
-                specfilename = f"{basespecfilename}.json"
-                specfile = os.path.join(specs_folder, specfilename)
-                with open(specfile) as f:
-                    ctx.invoke(
-                        build_api_from_specfile,
-                        specfile=f,
-                        api_name=None,
-                        output_folder=apifolder_path,
-                        generate_async=True,
-                    )
+def rebuild_apis(ctx: click.Context, specs_folder: Path, apifolder_path: Path) -> None:
+    """Rebuild all APIs from downloaded specfiles."""
+    excluded_files = {"canvas_client.py", "__init__.py"}
+    for api_path in apifolder_path.iterdir():
+        if not api_path.is_file() or api_path.name in excluded_files:
+            continue
+        is_async = "async" in api_path.stem
+        base_stem = api_path.stem.replace("_async", "") if is_async else api_path.stem
+        spec_path = specs_folder / f"{base_stem}.json"
+        with spec_path.open() as f:
+            ctx.invoke(
+                build_api_from_specfile,
+                specfile=f,
+                api_name=None,
+                output_folder=apifolder_path,
+                generate_async=is_async,
+            )
 
 
 # Update spec files
-
-
 @click.command()
 @click.option(
     "-s",
     "--specs-folder",
     required=True,
-    type=click.Path(file_okay=False, readable=True),
+    type=click.Path(file_okay=False, readable=True, path_type=Path),
     help="Path for specfiles",
 )
 @click.option(
@@ -272,32 +227,29 @@ def rebuild_apis(ctx, specs_folder, apifolder_path):
     default=None,
     help="Download a single spec file by name (e.g. assignments.json)",
 )
-def update_spec_files(specs_folder, spec_name):
-    """Update spec files from Instructure API docs"""
-    docsFile = "api-docs.json"
-    baseUrl = "https://canvas.instructure.com/doc/api/"
+def update_spec_files(specs_folder: Path, spec_name: str | None) -> None:
+    """Update spec files from Instructure API docs."""
+    base_url = "https://canvas.instructure.com/doc/api/"
 
     if spec_name:
         spec_names = [spec_name]
     else:
-        specs = requests.get(f"{baseUrl}{docsFile}").json()
-        spec_names = [spec["path"][1:] for spec in specs["apis"]]
+        spec_names = [
+            spec["path"][1:] for spec in httpx.get(f"{base_url}api-docs.json").json()["apis"]
+        ]
 
-    for specName in spec_names:
-        r = requests.get(f"{baseUrl}{specName}")
+    for name in spec_names:
+        r = httpx.get(f"{base_url}{name}")
         if r.status_code == 200:
-            specFile = os.path.join(specs_folder, specName)
-            with open(specFile, "wb") as f:
-                f.write(r.content)
-                click.echo(f"Updated {specFile}")
+            spec_path = specs_folder / name
+            spec_path.write_bytes(r.content)
+            click.echo(f"Updated {spec_path}")
         else:
-            click.echo(
-                f"Something went wrong trying to retrieve {specName}. Status Code: {r.status_code}"
-            )
+            click.echo(f"Failed to retrieve {name}. Status Code: {r.status_code}")
 
 
 @click.group()
-def cli():
+def cli() -> None:
     pass
 
 
