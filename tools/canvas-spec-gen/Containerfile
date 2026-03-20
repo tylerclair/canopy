@@ -1,0 +1,65 @@
+FROM docker.io/instructure/ruby-passenger:3.4-jammy
+
+ENV RAILS_ENV=development
+ENV BUNDLE_IGNORE_MULTILOCK=1
+
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    libpq-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libsqlite3-dev \
+    libyaml-dev \
+    libssl-dev \
+    zlib1g-dev \
+    libidn11-dev \
+    shared-mime-info \
+    libclang-dev \
+    tzdata \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN sed -i \
+    's/metadata = Gem::SafeYAML\.safe_load(output)/metadata = Gem::SafeYAML.safe_load(output.lines.drop_while { |l| !l.start_with?("{") }.join)/' \
+    /usr/lib/ruby/3.4.0/rubygems/ext/cargo_builder.rb
+
+# Install Rust as the docker user so PATH is correct during bundle install
+USER docker
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    sh -s -- -y --default-toolchain stable --no-modify-path
+ENV PATH="/home/docker/.cargo/bin:${PATH}"
+
+RUN cargo --version && rustc --version
+
+WORKDIR /canvas
+
+USER root
+RUN git clone --depth=1 --branch prod \
+    https://github.com/instructure/canvas-lms.git . && \
+    chown -R docker:docker /canvas
+
+USER docker
+
+RUN for config in amazon_s3 delayed_jobs domain file_store \
+    outgoing_mail security external_migration \
+    dynamic_settings database; do \
+    cp config/${config}.yml.example config/${config}.yml; \
+    done
+
+RUN gem install bundler:2.6.9
+
+RUN bundle _2.6.9_ plugin install bundler-multilock
+
+RUN bundle config set --local without 'test production'
+RUN bundle config set --local force_ruby_platform true
+
+RUN bundle _2.6.9_ install
+
+RUN rm -f /canvas/lib/tasks/pact_broker.rake \
+          /canvas/lib/tasks/rspec.rake && \
+    bundle _2.6.9_ exec rake doc:openapi
+
+CMD ["cat", "public/doc/openapi/canvas.openapi.yaml"]

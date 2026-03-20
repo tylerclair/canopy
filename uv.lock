@@ -13,7 +13,7 @@ wheels = [
 
 [[package]]
 name = "canopy"
-version = "2025.5.2"
+version = "2026.3.19.1"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

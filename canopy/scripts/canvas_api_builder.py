@@ -274,19 +274,15 @@ def rebuild_apis(ctx, specs_folder, apifolder_path):
     help="Path for specfiles",
 )
 @click.option(
-    "--convert", is_flag=True, default=False, help="Convert spec file to OpenAPI 3"
-)
-@click.option(
     "-n",
     "--spec-name",
     default=None,
     help="Download a single spec file by name (e.g. assignments.json)",
 )
-def update_spec_files(specs_folder, convert, spec_name):
+def update_spec_files(specs_folder, spec_name):
     """Update spec files from Instructure API docs"""
     docsFile = "api-docs.json"
     baseUrl = "https://canvas.instructure.com/doc/api/"
-    swaggerConverterUrl = "https://converter.swagger.io/api/convert"
 
     if spec_name:
         spec_names = [spec_name]
@@ -301,14 +297,6 @@ def update_spec_files(specs_folder, convert, spec_name):
             with open(specFile, "wb") as f:
                 f.write(r.content)
                 click.echo(f"Updated {specFile}")
-            if convert:
-                # Convert to OpenAPI v3
-                params = {"url": f"{baseUrl}{specName}"}
-                c = requests.get(swaggerConverterUrl, params=params)
-                convertedSpecFile = os.path.join(f"{specs_folder}/converted", specName)
-                with open(convertedSpecFile, "wb") as f:
-                    f.write(c.content)
-                    click.echo(f"Converted {specFile}")
         else:
             click.echo(
                 f"Something went wrong trying to retrieve {specName}. Status Code: {r.status_code}"
