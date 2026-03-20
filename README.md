@@ -83,31 +83,36 @@ You can use the canvas_api_builder script to download the spec files, generate t
 
 ### Updating spec files
 
+**Downloading or updating all spec files**
+
+```bash
+canvas_api_builder update-spec-files --specs-folder specs/
+# Updated specs/api_token_scopes.json
+# Updated specs/account_domain_lookups.json
+# ... (continues for each spec file)
 ```
-$ canvas_api_builder update-spec-files --specs-folder specs/
-Updated specs/api_token_scopes.json
-Updated specs/account_domain_lookups.json
-Updated specs/account_notifications.json
-Updated specs/account_reports.json
-Updated specs/accounts.json
-Updated specs/accounts_(lti).json
-Updated specs/admins.json
-Updated specs/analytics.json
-...
+
+**Download or update an individual spec file**
+
+```bash
+canvas_api_builder update-spec-files --specs-folder specs/ --spec-name accounts.json
 ```
+
+>**Note:** Instructure has started to timeout the download script after so many downloads, after that you will get 202 errors. It's recommended to either download them individually or use a downloading extension in your browser to download all the spec files.
+
 For more information on using this command  run `$ canvas_api_builder update-spec-files --help`
 
 ### Build API from spec file
 
 **Synchronous**
-```
-$ canvas_api_builder build-api-from-specfile --specfile specs/accounts.json --output-folder apis/
-Generating code for specfile: accounts.json
+```bash
+canvas_api_builder build-api-from-specfile --specfile specs/accounts.json --output-folder apis/
+# Generating code for specfile: accounts.json
 ```
 **Asynchronous**
-```
-$ canvas_api_builder build-api-from-specfile --specfile specs/accounts.json --output-folder apis/ --generate-async
-Generating async code for specfile: accounts.json
+```bash
+canvas_api_builder build-api-from-specfile --specfile specs/accounts.json --output-folder apis/ --generate-async
+# Generating async code for specfile: accounts.json
 ```
 
 **Note: The API modules are generated using a template. Make sure the code is valid before using it.**
@@ -115,27 +120,22 @@ Generating async code for specfile: accounts.json
 For more information on using this command  run `$ canvas_api_builder build-api-from-specfile --help`
 
 ### Build Canvas client file
-```
-$ canvas_api_builder build-canvas-client-file --apis-folder apis/
-Generating canvas_client.py file
+```bash
+canvas_api_builder build-canvas-client-file --apis-folder apis/
+# Generating canvas_client.py file
 ```
 
 ### Build all APIs
-**Note: It is generally not recommended to generate all the APIs at this time**. There are many API endpoints that have issues that will cause the loading of the client to fail. Only after you correct *all* the issues within the API files will the client load without issues.
+>**Note**: It is generally not recommended to generate all the APIs at this time. There are many API endpoints that have issues that will cause the loading of the client to fail. Only after you correct *all* the issues within the API files will the client load without issues.
 
+```bash
+canvas_api_builder build-all-apis --specs-folder specs/ --output-folder apis/
+# Generating code for specfile: api_token_scopes.json
+# Generating code for specfile: account_domain_lookups.json
+# ... (continues for each spec file)
 ```
-$ canvas_api_builder build-all-apis --specs-folder specs/ --output-folder apis/
-Generating code for specfile: api_token_scopes.json
-Generating code for specfile: account_domain_lookups.json
-Generating code for specfile: account_notifications.json
-Generating code for specfile: account_reports.json
-Generating code for specfile: accounts.json
-Generating code for specfile: accounts_(lti).json
-Generating code for specfile: admins.json
-Generating code for specfile: analytics.json
-...
-```
-For more information on using this command  run `$ canvas_api_builder build-all-apis --help`
+
+For more information on using this command  run `canvas_api_builder build-all-apis --help`
 
 
 ## Manually testing canvas_api_builder commands
@@ -143,10 +143,10 @@ For more information on using this command  run `$ canvas_api_builder build-all-
 You can use the Python REPL to run the builder commands manually. I suggest creating separate test folders for your apis, spec files, and canvas client files. Open the Python REPL by entering `python` in a shell from the root of the package.
 
 import the specific command from the `canvas_api_builder.py` file.
-```
+```python
 >>> from canopy.scripts.canvas_api_builder import build_api_from_specfile
 >>> build_api_from_specfile.main(["-s", "tests/specs/sections.json", "-o", "tests/apis"])
-Generating code for specfile: sections.json
+# Generating code for specfile: sections.json
 ```
 Once a command is ran it will exit the REPL and you will have to launch it again and repeat the process for additional commands. In the future I may create a test file for the commands, but for now any changes can be tested using this manual method.
 
@@ -163,10 +163,10 @@ user_profile = client.users.get_user_profile("self")
 print(user_profile)
 ```
 ## Asynchronous usage in your project
-Canopy now has the ability to perform asynchronous API calls, this is very different from the traditional usage. There are still some calls that will be blocking due to them relying on the returned result of the previous API call, i.e. paginated requests. Despite this drawback there is still a vast improvement in performance especially when you have to make a large amount of requests that do not rely on other calls responses.
+
+Canopy supports fully asynchronous API calls via `httpx.AsyncClient`. All requests including paginated ones are non-blocking, making it well suited for high-volume workloads where many independent requests can be made concurrently.
 
 Here is an example of how we can take a list of student IDs and return their names:
-
 ```python
 import asyncio
 from canvas_client import CanvasClient
@@ -244,3 +244,19 @@ Total time (asynchronous): 5.239625043002889
 Total time (asynchronous print as completed): 4.629659270998673
 ```
 
+## Connection management
+
+`CanvasSession` supports context managers for proper connection cleanup. This is recommended for long-running applications or scripts that make many requests:
+```python
+# Synchronous
+from canopy import CanvasSession
+
+with CanvasSession(canvas_url, token) as session:
+    # session is automatically closed when the block exits
+    pass
+
+# Asynchronous
+async with CanvasSession(canvas_url, token) as session:
+    # async session is automatically closed when the block exits
+    pass
+```
