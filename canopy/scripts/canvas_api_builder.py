@@ -1,7 +1,10 @@
 import json
 import keyword
+import random
+import time
 from operator import itemgetter
 from pathlib import Path
+from typing import IO
 
 import click
 import httpx
@@ -77,7 +80,7 @@ def _snake_to_pascal(name: str) -> str:
 )
 @click.option("--generate-async", is_flag=True, default=False, help="Generate async version")
 def build_api_from_specfile(
-    specfile: click.File,
+    specfile: IO[str],
     api_name: str | None,
     output_folder: Path,
     generate_async: bool,
@@ -238,14 +241,35 @@ def update_spec_files(specs_folder: Path, spec_name: str | None) -> None:
             spec["path"][1:] for spec in httpx.get(f"{base_url}api-docs.json").json()["apis"]
         ]
 
-    for name in spec_names:
-        r = httpx.get(f"{base_url}{name}")
-        if r.status_code == 200:
-            spec_path = specs_folder / name
-            spec_path.write_bytes(r.content)
-            click.echo(f"Updated {spec_path}")
+    total = len(spec_names)
+    for i, name in enumerate(spec_names, 1):
+        click.echo(f"Fetching {name} ({i}/{total})...")
+
+        retries = 3
+        for attempt in range(1, retries + 1):
+            r = httpx.get(f"{base_url}{name}")
+
+            if r.status_code == 200:
+                spec_path = specs_folder / name
+                spec_path.write_bytes(r.content)
+                click.echo(f"  ✓ Updated {spec_path}")
+                break
+            elif r.status_code == 202:
+                wait = 30 * attempt  # 30s, 60s, 90s backoff
+                click.echo(
+                    f"  ⚠ Rate limited (202) on attempt {attempt}/{retries}. Waiting {wait}s..."
+                )
+                time.sleep(wait)
+            else:
+                click.echo(f"  ✗ Failed to retrieve {name}. Status Code: {r.status_code}")
+                break
         else:
-            click.echo(f"Failed to retrieve {name}. Status Code: {r.status_code}")
+            click.echo(f"  ✗ Gave up on {name} after {retries} attempts.")
+
+        if i < total:
+            delay = random.uniform(2.0, 5.0)
+            click.echo(f"  Sleeping {delay:.1f}s before next request...")
+            time.sleep(delay)
 
 
 @click.group()
