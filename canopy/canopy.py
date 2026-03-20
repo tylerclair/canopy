@@ -1,10 +1,11 @@
 import asyncio
-import urllib.parse
 import json
+import urllib.parse
+
 import requests
 
 
-class CanvasSession(object):
+class CanvasSession:
     def __init__(self, instance_address, access_token, max_per_page=100):
         self.instance_address = instance_address
         self.access_token = access_token
@@ -50,9 +51,7 @@ class CanvasSession(object):
                 while pagination_links["next"]:
                     response = self.session.get(pagination_links["next"]["url"])
                     pagination_links = self.extract_pagination_links(response)
-                    this_data = self.extract_data_from_response(
-                        response, data_key=data_key
-                    )
+                    this_data = self.extract_data_from_response(response, data_key=data_key)
                     if this_data is not None:
                         if isinstance(this_data, list):
                             all_data += this_data
@@ -61,7 +60,7 @@ class CanvasSession(object):
             except KeyError:
                 pass
         else:
-            return "Response from {} has no pagination links.".format(response.url)
+            return f"Response from {response.url} has no pagination links."
         return all_data
 
     def base_request(
@@ -158,33 +157,25 @@ class CanvasSession(object):
                 self.base_request, "GET", url, params=combined_params, **kwargs
             )
         else:
-            return await asyncio.to_thread(
-                self.base_request, "GET", url, params=params, **kwargs
-            )
+            return await asyncio.to_thread(self.base_request, "GET", url, params=params, **kwargs)
 
     def post(self, url, data=None, **kwargs):
         return self.base_request("POST", url, data=data, **kwargs)
 
     async def async_post(self, url, data=None, **kwargs):
-        return await asyncio.to_thread(
-            self.base_request, "POST", url, data=data, **kwargs
-        )
+        return await asyncio.to_thread(self.base_request, "POST", url, data=data, **kwargs)
 
     def put(self, url, data=None, **kwargs):
         return self.base_request("PUT", url, data=data, **kwargs)
 
     async def async_put(self, url, data=None, **kwargs):
-        return await asyncio.to_thread(
-            self.base_request, "PUT", url, data=data, **kwargs
-        )
+        return await asyncio.to_thread(self.base_request, "PUT", url, data=data, **kwargs)
 
     def delete(self, url, params=None, **kwargs):
         return self.base_request("DELETE", url, params=params, **kwargs)
 
     async def async_delete(self, url, params=None, **kwargs):
-        return await asyncio.to_thread(
-            self.base_request, "DELETE", url, params=params, **kwargs
-        )
+        return await asyncio.to_thread(self.base_request, "DELETE", url, params=params, **kwargs)
 
 
 class CanvasAPIError(requests.HTTPError):

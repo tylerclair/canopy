@@ -3,9 +3,81 @@
 
 A helper library for the Instructure Canvas API base on the basic request handling of Py3Canvas and modified API spec files
 
+## Installation
+
+### Runtime Only
+
+**With uv (recommended):**
+```bash
+uv add git+https://github.com/tylerclair/canopy.git
+```
+
+**With pip:**
+```bash
+pip install git+https://github.com/tylerclair/canopy.git
+```
+
+### Optional Dependencies
+ 
+Canopy has three optional dependency groups depending on your use case:
+ 
+#### `builder`
+Required for generating API modules from Canvas spec files using `canvas_api_builder`.
+ 
+**With uv:**
+```bash
+uv add "canopy[builder] @ git+https://github.com/tylerclair/canopy.git"
+```
+ 
+**With pip:**
+```bash
+pip install "canopy[builder] @ git+https://github.com/tylerclair/canopy.git"
+```
+ 
+#### `extras`
+Optional async rate limiting and environment variable support. Useful if you are managing Canvas API rate limits or loading credentials from a `.env` file.
+ 
+- `aiolimiter` — async rate limiting for high-volume async API calls
+- `python-dotenv` — load Canvas credentials from a `.env` file
+ 
+**With uv:**
+```bash
+uv add "canopy[extras] @ git+https://github.com/tylerclair/canopy.git"
+```
+ 
+**With pip:**
+```bash
+pip install "canopy[extras] @ git+https://github.com/tylerclair/canopy.git"
+```
+ 
+#### `dev`
+For contributors working on Canopy itself.
+ 
+**With uv:**
+```bash
+uv add "canopy[dev] @ git+https://github.com/tylerclair/canopy.git"
+```
+ 
+**With pip:**
+```bash
+pip install "canopy[dev] @ git+https://github.com/tylerclair/canopy.git"
+```
+ 
+#### Installing multiple extras together
+ 
+**With uv:**
+```bash
+uv add "canopy[builder,extras] @ git+https://github.com/tylerclair/canopy.git"
+```
+ 
+**With pip:**
+```bash
+pip install "canopy[builder,extras] @ git+https://github.com/tylerclair/canopy.git"
+```
+
 ## Usage
 
-In your project create two folders: `specs` and `apis`. These will contain the API spec files downloaded from Canvas live documentation which has the openAPI spec files, and the generated API files used for making API calls. Install canopy by running `pip install git+https://github.com/tylerclair/canopy.git`
+In your project create two folders: `specs` and `apis`. These will contain the API spec files downloaded from Canvas live documentation which has the openAPI spec files, and the generated API files used for making API calls.
 
 You can use the canvas_api_builder script to download the spec files, generate the Canvas API modules in both synchronous and asynchronous versions, and generate the canvas client file that you can use in your own projects. You can use this directly in your project or you can generate them in a separate project, install Canopy, and then move the apis folder and canvas client to your own project if desired.
 
