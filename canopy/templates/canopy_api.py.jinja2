@@ -18,6 +18,14 @@ params["{{param.name}}"] = {{param.name|fix_param_name}}
 """{{api_name}} API Version {{spec.apiVersion|default("1.0")}}.
 
 This API client was generated using a template. Make sure this code is valid before using it.
+
+Canopy kwargs available on every method:
+    as_user_id (str | int | None): Masquerade as this user. Accepts a Canvas user ID (int)
+        or SIS login ID (str, e.g. "sis_login_id:abc123"). Requires act-as permission.
+    do_not_process (bool | None): When truthy, returns the raw httpx.Response object
+        instead of parsed data. Useful for accessing headers, status codes, or raw bytes.
+    no_data (bool | None): When truthy, returns the HTTP status code as an int instead
+        of parsing the response body. Useful for DELETE or PUT calls.
 """
 from datetime import date, datetime
 from canopy.helpers import _validate_enum, coerce_to_iso8601
@@ -39,6 +47,10 @@ class {{api_name}}:
         {% for i in op.notes.split('\n') %}
         {{i|indent(8)}}
         {% endfor %}
+
+        Returns:
+            {{ "list[dict]: All pages of results, auto-fetched." if op.type == 'array' else "dict | list[dict]: Response data (auto-paginated if list)." if op.type == 'void' else "dict: The " ~ op.type ~ " object." }}
+            If do_not_process=True: httpx.Response. If no_data=True: int (HTTP status code).
         """
         client = self.client
         data = {}
@@ -56,11 +68,9 @@ class {{api_name}}:
         {% endif %}{# op.parameters|length > 0 #}
         if as_user_id is not None:
             params["as_user_id"] = as_user_id
-        if do_not_process is not None:
-            return client.{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params, do_not_process=do_not_process)
-        if no_data is not None:
-            return client.{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params, no_data=no_data)
-        return client.{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 'void' %}, poly_response=True{% endif %}{% if op.type not in ['array', 'void'] and op.type[0] == op.type[0].upper() %}, single_item=True{% endif %})
+        return client.{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params, do_not_process=do_not_process, 
+            no_data=no_data{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 'void' %}, poly_response=True{% 
+            endif %}{% if op.type not in ['array', 'void'] and op.type[0] == op.type[0].upper() %}, single_item=True{% endif %})
 
     {% endfor %}
     {% endfor %}
