@@ -126,7 +126,8 @@ Every generated method follows this pattern:
 def <endpoint_name>(self, <canvas_params>, as_user_id=None, do_not_process=None, no_data=None):
 
 # Async
-async def <endpoint_name>(self, <canvas_params>, as_user_id=None, do_not_process=None, no_data=None):
+async def <endpoint_name>(self, <canvas_params>,
+                           as_user_id=None, do_not_process=None, no_data=None):
 ```
 
 Canvas parameters come from the spec and are either required positional args or
@@ -249,7 +250,8 @@ canvas_api_builder update-spec-files --specs-folder specs/
 canvas_api_builder build-api-from-specfile --specfile specs/accounts.json --output-folder apis/
 
 # Generate an async module
-canvas_api_builder build-api-from-specfile --specfile specs/accounts.json --output-folder apis/ --generate-async
+canvas_api_builder build-api-from-specfile \
+    --specfile specs/accounts.json --output-folder apis/ --generate-async
 
 # Generate CanvasClient (after generating all desired modules)
 canvas_api_builder build-canvas-client-file --apis-folder apis/
@@ -346,9 +348,8 @@ def _index_file(path: Path) -> str | None:
             ret = _infer_return_type(item)
             summary = _get_summary(item)
             params_str = ", ".join(canvas_params)
-            sig = (
-                f"{prefix} {item.name}(self, {params_str + ', ' if params_str else ''}...) -> {ret}"
-            )
+            canvas_args = params_str + ", " if params_str else ""
+            sig = f"{prefix} {item.name}(self, {canvas_args}...) -> {ret}"
             lines.append(f"  {sig}")
             if summary:
                 lines.append(f"    # {summary}")
@@ -415,7 +416,8 @@ def generate_index(
 
     blocks: list[str] = [
         "# Canopy API Index",
-        "# Canopy kwargs omitted from all signatures — see llms.txt for: as_user_id, do_not_process, no_data",
+        "# Canopy kwargs omitted from all signatures — see llms.txt"
+        " for: as_user_id, do_not_process, no_data",
         "",
     ]
 
