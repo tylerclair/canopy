@@ -3,7 +3,6 @@
 from datetime import date, datetime
 
 import pytest
-
 from canopy.helpers import _validate_enum, _validate_iso8601_string, coerce_to_iso8601
 
 
