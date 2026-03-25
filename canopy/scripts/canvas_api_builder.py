@@ -165,18 +165,34 @@ def build_canvas_client_file(apis_folder: Path) -> None:
     type=click.Path(file_okay=False, writable=True, path_type=Path),
     help="Path to output the API file to.",
 )
+@click.option("--generate-async", is_flag=True, default=False, help="Generate async version")
 @click.pass_context
-def build_all_apis(ctx: click.Context, specs_folder: Path, output_folder: Path) -> None:
+def build_all_apis(
+    ctx: click.Context,
+    specs_folder: Path,
+    output_folder: Path,
+    generate_async: bool,
+) -> None:
     """Build all APIs from downloaded specfiles."""
     for spec_path in specs_folder.iterdir():
         if spec_path.name not in blacklist:
-            with spec_path.open() as f:
-                ctx.invoke(
-                    build_api_from_specfile,
-                    specfile=f,
-                    api_name=None,
-                    output_folder=output_folder,
-                )
+            if not generate_async:
+                with spec_path.open() as f:
+                    ctx.invoke(
+                        build_api_from_specfile,
+                        specfile=f,
+                        api_name=None,
+                        output_folder=output_folder,
+                    )
+            else:
+                with spec_path.open() as f:
+                    ctx.invoke(
+                        build_api_from_specfile,
+                        specfile=f,
+                        api_name=None,
+                        output_folder=output_folder,
+                        generate_async=True,
+                    )
 
 
 # Rebuild APIs
