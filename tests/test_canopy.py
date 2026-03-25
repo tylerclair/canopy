@@ -315,7 +315,7 @@ class TestAsyncConvenienceMethods:
     def setup_method(self):
         self.session = CanvasSession("https://canvas.example.com", "token", max_per_page=75)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_async_get_injects_per_page(self):
         with patch.object(
             self.session, "async_base_request", new_callable=AsyncMock, return_value=[]
@@ -324,7 +324,7 @@ class TestAsyncConvenienceMethods:
         _, kwargs = mock_br.call_args
         assert kwargs["params"]["per_page"] == 75
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_async_post_calls_async_base_request(self):
         with patch.object(
             self.session, "async_base_request", new_callable=AsyncMock, return_value={"id": 1}
@@ -333,7 +333,7 @@ class TestAsyncConvenienceMethods:
         mock_br.assert_called_once_with("POST", "/api/v1/accounts", data={"name": "test"})
         assert result == {"id": 1}
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_async_put_calls_async_base_request(self):
         with patch.object(
             self.session, "async_base_request", new_callable=AsyncMock, return_value={"id": 1}
@@ -341,7 +341,7 @@ class TestAsyncConvenienceMethods:
             await self.session.async_put("/api/v1/accounts/1", data={"name": "updated"})
         mock_br.assert_called_once_with("PUT", "/api/v1/accounts/1", data={"name": "updated"})
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_async_delete_calls_async_base_request(self):
         with patch.object(
             self.session, "async_base_request", new_callable=AsyncMock, return_value=200
@@ -365,7 +365,7 @@ class TestContextManagers:
         with s as ctx:
             assert ctx is s
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_async_context_manager_calls_aclose(self):
         s = CanvasSession("https://canvas.example.com", "token")
         with patch.object(s, "aclose", new_callable=AsyncMock) as mock_aclose:
@@ -373,7 +373,7 @@ class TestContextManagers:
                 pass
         mock_aclose.assert_called_once()
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_async_context_manager_returns_self(self):
         s = CanvasSession("https://canvas.example.com", "token")
         async with s as ctx:
@@ -390,12 +390,12 @@ class TestContextManagers:
         s.close()
         mock_client.close.assert_called_once()
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_aclose_noop_when_no_client(self):
         s = CanvasSession("https://canvas.example.com", "token")
         await s.aclose()  # should not raise
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_aclose_closes_async_client(self):
         s = CanvasSession("https://canvas.example.com", "token")
         mock_client = AsyncMock(spec=httpx.AsyncClient)
