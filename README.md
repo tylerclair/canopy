@@ -129,6 +129,85 @@ canvas_api_builder build-all-apis --specs-folder specs/ --output-folder apis/
 
 For more information on using this command  run `canvas_api_builder build-all-apis --help`
 
+### Excluding specs from processing
+
+Some Canvas spec files contain malformed parameters that cause code generation to fail or produce invalid Python. You can maintain a local TOML file to exclude these specs from `build-all-apis`, `rebuild-apis`, and `update-spec-files`.
+
+Copy the provided example file to get started:
+
+```bash
+cp excluded_specs.toml.example excluded_specs.toml
+```
+
+The file format is a single list of spec filenames:
+
+```toml
+# excluded_specs.toml
+excluded = [
+    "quiz_extensions.json",
+    "plagiarism_detection.json",
+]
+```
+
+Pass it to any command that processes multiple specs via `--exclude-file`:
+
+```bash
+canvas_api_builder update-spec-files \
+    --specs-folder specs/ \
+    --exclude-file excluded_specs.toml
+
+canvas_api_builder build-all-apis \
+    --specs-folder specs/ \
+    --output-folder apis/ \
+    --exclude-file excluded_specs.toml
+
+canvas_api_builder rebuild-apis \
+    --specs-folder specs/ \
+    --apifolder-path apis/ \
+    --exclude-file excluded_specs.toml
+```
+
+>`excluded_specs.toml` is gitignored by default — each user maintains their own list locally.
+
+## Generating LLM documentation
+
+The `canopy_docs` script generates LLM-readable reference files from your project's generated API modules. This is useful for providing context to LLMs when building applications on top of Canopy.
+
+### Generate the Canopy framework reference
+
+```bash
+canopy_docs generate-llms
+```
+
+Writes a static `llms.txt` describing `CanvasSession`, `CanvasClient`, `CanvasAPIError`, pagination behaviour, async usage, and common usage patterns.
+
+### Generate an index of all API methods
+
+```bash
+canopy_docs generate-index --apis-folder apis/
+```
+
+Parses your generated API files using AST and emits a compact method index with signatures and inferred return types, grouped by class.
+
+### Generate both in one step
+
+```bash
+canopy_docs generate-all --apis-folder apis/
+```
+
+### Excluding specs from the index
+
+The same `excluded_specs.toml` file used with `canvas_api_builder` can be passed to `generate-index` and `generate-all` to keep excluded specs out of the generated documentation:
+
+```bash
+canopy_docs generate-index \
+    --apis-folder apis/ \
+    --exclude-file excluded_specs.toml
+
+canopy_docs generate-all \
+    --apis-folder apis/ \
+    --exclude-file excluded_specs.toml
+```
 
 ## Usage in your project
 
@@ -199,7 +278,7 @@ async def main():
     tasks = [get_user_details_async(student_id) for student_id in student_ids]
     for coro in asyncio.as_completed(tasks):
         name = await coro
-        print(name["name"])
+        print(name)
     print(
         f"Total time (asynchronous print as completed): {perf_counter() - time_before}"
     )

@@ -1,0 +1,18 @@
+# excluded_specs.toml
+#
+# List spec filenames to skip during build and download commands.
+# Copy this file to excluded_specs.toml and pass it via --exclude-file:
+#
+#   canvas_api_builder build-all-apis \
+#     --specs-folder specs/ \
+#     --output-folder apis/ \
+#     --exclude-file excluded_specs.toml
+#
+# Specs are often excluded because they contain malformed parameters that
+# cause code generation to fail or produce invalid Python.
+
+excluded = [
+    # "quiz_extensions.json",   # malformed parameter names
+    # "plagiarism_detection.json",
+    # "late_policy.json",
+]

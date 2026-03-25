@@ -7,6 +7,7 @@ Commands:
 """
 
 import ast
+import tomllib
 from pathlib import Path
 
 import click
@@ -283,6 +284,29 @@ CANVAS_URL=https://yourschool.instructure.com
 """
 
 
+# ── Excluded specs loader ────────────────────────────────────────────
+
+
+def load_excluded_specs(exclude_file: Path | None) -> set[str]:
+    """Load a set of excluded spec filenames from a TOML file.
+
+    The TOML file must contain a top-level ``excluded`` key whose value is a
+    list of spec filenames (e.g. ``["quiz_extensions.json"]``).  Returns an
+    empty set if *exclude_file* is None.
+    """
+    if exclude_file is None:
+        return set()
+    with exclude_file.open("rb") as f:
+        data = tomllib.load(f)
+    excluded = data.get("excluded", [])
+    if not isinstance(excluded, list):
+        raise click.BadParameter(
+            f"'excluded' in {exclude_file} must be a list of filenames, "
+            f"got {type(excluded).__name__}."
+        )
+    return set(excluded)
+
+
 # ── AST helpers ─────────────────────────────────────────────────────
 
 
@@ -363,13 +387,19 @@ def _collect_api_files(
     apis_folder: Path,
     sync_only: bool,
     async_only: bool,
+    excluded_specs: set[str],
 ) -> list[Path]:
-    excluded = {"canvas_client.py", "__init__.py"}
-    files = sorted(p for p in apis_folder.iterdir() if p.suffix == ".py" and p.name not in excluded)
+    excluded_py_files = {"canvas_client.py", "__init__.py"}
+    files = sorted(
+        p for p in apis_folder.iterdir() if p.suffix == ".py" and p.name not in excluded_py_files
+    )
     if sync_only:
-        return [p for p in files if "_async" not in p.stem]
+        files = [p for p in files if "_async" not in p.stem]
     if async_only:
-        return [p for p in files if "_async" in p.stem]
+        files = [p for p in files if "_async" in p.stem]
+    if excluded_specs:
+        # Match against the source spec name (strip _async suffix, swap .py → .json)
+        files = [p for p in files if f"{p.stem.replace('_async', '')}.json" not in excluded_specs]
     return files
 
 
@@ -399,11 +429,19 @@ def cli() -> None:
 )
 @click.option("--sync-only", is_flag=True, default=False, help="Only index sync modules.")
 @click.option("--async-only", is_flag=True, default=False, help="Only index async modules.")
+@click.option(
+    "-e",
+    "--exclude-file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True, path_type=Path),
+    help="TOML file listing spec filenames to exclude from the index.",
+)
 def generate_index(
     apis_folder: Path,
     output_file: Path,
     sync_only: bool,
     async_only: bool,
+    exclude_file: Path | None,
 ) -> None:
     """Generate a compact LLM-readable index of all generated API methods.
 
@@ -412,7 +450,11 @@ def generate_index(
     class. Canopy kwargs (as_user_id, do_not_process, no_data) are collapsed to
     '...' since they are identical on every method and documented in llms.txt.
     """
-    api_files = _collect_api_files(apis_folder, sync_only, async_only)
+    excluded_specs = load_excluded_specs(exclude_file)
+    if excluded_specs:
+        click.echo(f"Excluding {len(excluded_specs)} spec(s): {', '.join(sorted(excluded_specs))}")
+
+    api_files = _collect_api_files(apis_folder, sync_only, async_only, excluded_specs)
 
     blocks: list[str] = [
         "# Canopy API Index",
@@ -473,11 +515,19 @@ def generate_llms(output_file: Path) -> None:
     type=click.Path(file_okay=False, writable=True, path_type=Path),
     help="Folder to write llms.txt and apis_index.txt into.",
 )
+@click.option(
+    "-e",
+    "--exclude-file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True, path_type=Path),
+    help="TOML file listing spec filenames to exclude from the index.",
+)
 @click.pass_context
 def generate_all(
     ctx: click.Context,
     apis_folder: Path,
     output_folder: Path,
+    exclude_file: Path | None,
 ) -> None:
     """Run generate-llms and generate-index in one step.
 
@@ -492,6 +542,7 @@ def generate_all(
         output_file=output_folder / "apis_index.txt",
         sync_only=False,
         async_only=False,
+        exclude_file=exclude_file,
     )
 
 
