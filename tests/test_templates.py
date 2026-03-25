@@ -1,6 +1,7 @@
 """Tests for Jinja2 template output correctness."""
 
 import pytest
+
 from canopy.scripts.canvas_api_builder import get_jinja_env
 
 MINIMAL_SPEC = {

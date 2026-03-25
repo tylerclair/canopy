@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+
 from canopy import CanvasAPIError, CanvasSession
 
 # ── Helpers ─────────────────────────────────────────────────────────
@@ -194,17 +195,17 @@ class TestBaseRequest:
         return patch.object(self.session.session, "request", return_value=resp)
 
     def test_returns_json_by_default(self):
-        with self._patch_request({"id": 1}) as mock_req:
+        with self._patch_request({"id": 1}):
             result = self.session.base_request("GET", "/api/v1/accounts/1")
         assert result == {"id": 1}
 
     def test_do_not_process_returns_response(self):
-        with self._patch_request({"id": 1}) as mock_req:
+        with self._patch_request({"id": 1}):
             result = self.session.base_request("GET", "/api/v1/accounts/1", do_not_process=True)
         assert isinstance(result, MagicMock)
 
     def test_no_data_returns_status_code(self):
-        with self._patch_request({"id": 1}) as mock_req:
+        with self._patch_request({"id": 1}):
             result = self.session.base_request("DELETE", "/api/v1/accounts/1", no_data=True)
         assert result == 200
 
@@ -230,14 +231,17 @@ class TestBaseRequest:
         assert exc_info.value.status_code == 404
 
     def test_all_pages_depaginates(self):
-        page1 = _mock_response(200, [{"id": 1}], links={"next": {"url": "https://canvas.example.com/page=2"}})
+        next_url = "https://canvas.example.com/page=2"
+        page1 = _mock_response(200, [{"id": 1}], links={"next": {"url": next_url}})
         page1.raise_for_status = MagicMock()
         page2 = _mock_response(200, [{"id": 2}])
         page2.raise_for_status = MagicMock()
 
-        with patch.object(self.session.session, "request", return_value=page1):
-            with patch.object(self.session.session, "get", return_value=page2):
-                result = self.session.base_request("GET", "/api/v1/accounts", all_pages=True)
+        with (
+            patch.object(self.session.session, "request", return_value=page1),
+            patch.object(self.session.session, "get", return_value=page2),
+        ):
+            result = self.session.base_request("GET", "/api/v1/accounts", all_pages=True)
         assert result == [{"id": 1}, {"id": 2}]
 
     def test_force_urlencode_data(self):
@@ -313,27 +317,35 @@ class TestAsyncConvenienceMethods:
 
     @pytest.mark.asyncio
     async def test_async_get_injects_per_page(self):
-        with patch.object(self.session, "async_base_request", new_callable=AsyncMock, return_value=[]) as mock_br:
+        with patch.object(
+            self.session, "async_base_request", new_callable=AsyncMock, return_value=[]
+        ) as mock_br:
             await self.session.async_get("/api/v1/accounts", all_pages=True)
         _, kwargs = mock_br.call_args
         assert kwargs["params"]["per_page"] == 75
 
     @pytest.mark.asyncio
     async def test_async_post_calls_async_base_request(self):
-        with patch.object(self.session, "async_base_request", new_callable=AsyncMock, return_value={"id": 1}) as mock_br:
+        with patch.object(
+            self.session, "async_base_request", new_callable=AsyncMock, return_value={"id": 1}
+        ) as mock_br:
             result = await self.session.async_post("/api/v1/accounts", data={"name": "test"})
         mock_br.assert_called_once_with("POST", "/api/v1/accounts", data={"name": "test"})
         assert result == {"id": 1}
 
     @pytest.mark.asyncio
     async def test_async_put_calls_async_base_request(self):
-        with patch.object(self.session, "async_base_request", new_callable=AsyncMock, return_value={"id": 1}) as mock_br:
+        with patch.object(
+            self.session, "async_base_request", new_callable=AsyncMock, return_value={"id": 1}
+        ) as mock_br:
             await self.session.async_put("/api/v1/accounts/1", data={"name": "updated"})
         mock_br.assert_called_once_with("PUT", "/api/v1/accounts/1", data={"name": "updated"})
 
     @pytest.mark.asyncio
     async def test_async_delete_calls_async_base_request(self):
-        with patch.object(self.session, "async_base_request", new_callable=AsyncMock, return_value=200) as mock_br:
+        with patch.object(
+            self.session, "async_base_request", new_callable=AsyncMock, return_value=200
+        ) as mock_br:
             await self.session.async_delete("/api/v1/accounts/1")
         mock_br.assert_called_once_with("DELETE", "/api/v1/accounts/1", params=None)
 

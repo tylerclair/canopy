@@ -105,7 +105,9 @@ class TestGetCanvasParams:
 class TestGetSummary:
     def test_returns_first_docstring_line(self):
         func = _parse_func(
-            'def f(self):\n    """List all courses for an account.\n\n    Extra notes.\n    """\n    pass'
+            "def f(self):\n"
+            '    """List all courses for an account.\n\n    Extra notes.\n    """\n'
+            "    pass"
         )
         assert _get_summary(func) == "List all courses for an account"
 
@@ -229,7 +231,10 @@ class TestCollectApiFiles:
         assert "accounts.py" in names
 
     def test_sync_only_excludes_async(self, tmp_path):
-        self._make_dir(tmp_path, ["accounts.py", "accounts_async.py", "courses.py", "courses_async.py"])
+        self._make_dir(
+            tmp_path,
+            ["accounts.py", "accounts_async.py", "courses.py", "courses_async.py"],
+        )
         files = _collect_api_files(tmp_path, True, False, set())
         names = [f.name for f in files]
         assert "accounts_async.py" not in names
@@ -244,7 +249,10 @@ class TestCollectApiFiles:
         assert "accounts_async.py" in names
 
     def test_excluded_specs_removes_both_sync_and_async(self, tmp_path):
-        self._make_dir(tmp_path, ["accounts.py", "accounts_async.py", "courses.py", "courses_async.py"])
+        self._make_dir(
+            tmp_path,
+            ["accounts.py", "accounts_async.py", "courses.py", "courses_async.py"],
+        )
         files = _collect_api_files(tmp_path, False, False, {"accounts.json"})
         names = [f.name for f in files]
         assert "accounts.py" not in names
