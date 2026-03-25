@@ -54,9 +54,7 @@ class TestInferReturnType:
 
     def test_priority_all_pages_over_single_item(self):
         # all_pages takes first-match priority via the if chain
-        func = _parse_func(
-            "def f(self):\n    client.get(url, all_pages=True, single_item=True)"
-        )
+        func = _parse_func("def f(self):\n    client.get(url, all_pages=True, single_item=True)")
         assert _infer_return_type(func) == "list[dict]"
 
 
@@ -120,9 +118,7 @@ class TestGetSummary:
         assert _get_summary(func) == ""
 
     def test_multiline_only_first_line(self):
-        func = _parse_func(
-            'def f(self):\n    """First line.\n    Second line.\n    """\n    pass'
-        )
+        func = _parse_func('def f(self):\n    """First line.\n    Second line.\n    """\n    pass')
         assert _get_summary(func) == "First line"
 
 
