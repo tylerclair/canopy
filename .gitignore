@@ -19,4 +19,5 @@ test.py
 test_async.py
 canvas_client.py
 .env.local
+excluded_specs.toml
 testing/

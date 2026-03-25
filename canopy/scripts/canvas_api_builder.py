@@ -2,6 +2,7 @@ import json
 import keyword
 import random
 import time
+import tomllib
 from operator import itemgetter
 from pathlib import Path
 from typing import IO
@@ -10,7 +11,25 @@ import click
 import httpx
 from jinja2 import Environment, FileSystemLoader, PackageLoader
 
-blacklist: list[str] = []
+
+def load_excluded_specs(exclude_file: Path | None) -> set[str]:
+    """Load a set of excluded spec filenames from a TOML file.
+
+    The TOML file must contain a top-level ``excluded`` key whose value is a
+    list of spec filenames (e.g. ``["quiz_extensions.json"]``).  Returns an
+    empty set if *exclude_file* is None.
+    """
+    if exclude_file is None:
+        return set()
+    with exclude_file.open("rb") as f:
+        data = tomllib.load(f)
+    excluded = data.get("excluded", [])
+    if not isinstance(excluded, list):
+        raise click.BadParameter(
+            f"'excluded' in {exclude_file} must be a list of filenames, "
+            f"got {type(excluded).__name__}."
+        )
+    return set(excluded)
 
 
 def fix_param_name(name: str) -> str:
@@ -166,33 +185,47 @@ def build_canvas_client_file(apis_folder: Path) -> None:
     help="Path to output the API file to.",
 )
 @click.option("--generate-async", is_flag=True, default=False, help="Generate async version")
+@click.option(
+    "-e",
+    "--exclude-file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True, path_type=Path),
+    help="TOML file listing spec filenames to exclude from processing.",
+)
 @click.pass_context
 def build_all_apis(
     ctx: click.Context,
     specs_folder: Path,
     output_folder: Path,
     generate_async: bool,
+    exclude_file: Path | None,
 ) -> None:
     """Build all APIs from downloaded specfiles."""
+    excluded = load_excluded_specs(exclude_file)
+    if excluded:
+        click.echo(f"Excluding {len(excluded)} spec(s): {', '.join(sorted(excluded))}")
+
     for spec_path in specs_folder.iterdir():
-        if spec_path.name not in blacklist:
-            if not generate_async:
-                with spec_path.open() as f:
-                    ctx.invoke(
-                        build_api_from_specfile,
-                        specfile=f,
-                        api_name=None,
-                        output_folder=output_folder,
-                    )
-            else:
-                with spec_path.open() as f:
-                    ctx.invoke(
-                        build_api_from_specfile,
-                        specfile=f,
-                        api_name=None,
-                        output_folder=output_folder,
-                        generate_async=True,
-                    )
+        if spec_path.name in excluded:
+            click.echo(f"Skipping excluded spec: {spec_path.name}")
+            continue
+        if not generate_async:
+            with spec_path.open() as f:
+                ctx.invoke(
+                    build_api_from_specfile,
+                    specfile=f,
+                    api_name=None,
+                    output_folder=output_folder,
+                )
+        else:
+            with spec_path.open() as f:
+                ctx.invoke(
+                    build_api_from_specfile,
+                    specfile=f,
+                    api_name=None,
+                    output_folder=output_folder,
+                    generate_async=True,
+                )
 
 
 # Rebuild APIs
@@ -211,16 +244,36 @@ def build_all_apis(
     type=click.Path(file_okay=False, writable=True, path_type=Path),
     help="Path for API files",
 )
+@click.option(
+    "-e",
+    "--exclude-file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True, path_type=Path),
+    help="TOML file listing spec filenames to exclude from processing.",
+)
 @click.pass_context
-def rebuild_apis(ctx: click.Context, specs_folder: Path, apifolder_path: Path) -> None:
+def rebuild_apis(
+    ctx: click.Context,
+    specs_folder: Path,
+    apifolder_path: Path,
+    exclude_file: Path | None,
+) -> None:
     """Rebuild all APIs from downloaded specfiles."""
     excluded_files = {"canvas_client.py", "__init__.py"}
+    excluded_specs = load_excluded_specs(exclude_file)
+    if excluded_specs:
+        click.echo(f"Excluding {len(excluded_specs)} spec(s): {', '.join(sorted(excluded_specs))}")
+
     for api_path in apifolder_path.iterdir():
         if not api_path.is_file() or api_path.name in excluded_files:
             continue
         is_async = "async" in api_path.stem
         base_stem = api_path.stem.replace("_async", "") if is_async else api_path.stem
-        spec_path = specs_folder / f"{base_stem}.json"
+        spec_filename = f"{base_stem}.json"
+        if spec_filename in excluded_specs:
+            click.echo(f"Skipping excluded spec: {spec_filename}")
+            continue
+        spec_path = specs_folder / spec_filename
         with spec_path.open() as f:
             ctx.invoke(
                 build_api_from_specfile,
@@ -246,9 +299,17 @@ def rebuild_apis(ctx: click.Context, specs_folder: Path, apifolder_path: Path) -
     default=None,
     help="Download a single spec file by name (e.g. assignments.json)",
 )
-def update_spec_files(specs_folder: Path, spec_name: str | None) -> None:
+@click.option(
+    "-e",
+    "--exclude-file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True, path_type=Path),
+    help="TOML file listing spec filenames to exclude from downloading.",
+)
+def update_spec_files(specs_folder: Path, spec_name: str | None, exclude_file: Path | None) -> None:
     """Update spec files from Instructure API docs."""
     base_url = "https://canvas.instructure.com/doc/api/"
+    excluded = load_excluded_specs(exclude_file)
 
     if spec_name:
         spec_names = [spec_name]
@@ -256,6 +317,11 @@ def update_spec_files(specs_folder: Path, spec_name: str | None) -> None:
         spec_names = [
             spec["path"][1:] for spec in httpx.get(f"{base_url}api-docs.json").json()["apis"]
         ]
+
+    if excluded:
+        before = len(spec_names)
+        spec_names = [n for n in spec_names if n not in excluded]
+        click.echo(f"Excluding {before - len(spec_names)} spec(s) from download.")
 
     total = len(spec_names)
     for i, name in enumerate(spec_names, 1):
