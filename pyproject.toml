@@ -43,7 +43,7 @@ Homepage = "https://github.com/tylerclair/canopy"
 Repository = "https://github.com/tylerclair/canopy"
 
 [project.scripts]
-canvas_api_builder = "canopy.scripts.canvas_api_builder:cli"
+canopy_build = "canopy.scripts.canvas_api_builder:cli"
 canopy_docs = "canopy.scripts.canopy_docs:cli"
 
 [tool.hatch.build.targets.wheel]
