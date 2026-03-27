@@ -22,7 +22,7 @@ pip install git+https://github.com/tylerclair/canopy.git
 Canopy has three optional dependency groups depending on your use case:
  
 #### `builder`
-Required for generating API modules from Canvas spec files using `canvas_api_builder`.
+Required for generating API modules from Canvas spec files using `canopy_build`.
  
 **With uv:**
 ```bash
@@ -79,59 +79,67 @@ pip install "canopy[builder,extras] @ git+https://github.com/tylerclair/canopy.g
 
 In your project create two folders: `specs` and `apis`. These will contain the API spec files downloaded from Canvas live documentation which has the openAPI spec files, and the generated API files used for making API calls.
 
-You can use the canvas_api_builder script to download the spec files, generate the Canvas API modules in both synchronous and asynchronous versions, and generate the canvas client file that you can use in your own projects. You can use this directly in your project or you can generate them in a separate project, install Canopy, and then move the apis folder and canvas client to your own project if desired.
+You can use the `canopy_build` script to download the spec files, generate the Canvas API modules in both synchronous and asynchronous versions, and generate the canvas client file that you can use in your own projects. You can use this directly in your project or you can generate them in a separate project, install Canopy, and then move the apis folder and canvas client to your own project if desired.
 
-### Updating spec files
+### Fetching spec files
 
 **Downloading or updating all spec files**
 
 ```bash
-canvas_api_builder update-spec-files --specs-folder specs/
+canopy_build fetch-specs --specs-dir specs/
 ```
 
 **Download or update an individual spec file**
 
 ```bash
-canvas_api_builder update-spec-files --specs-folder specs/ --spec-name accounts.json
+canopy_build fetch-specs --specs-dir specs/ --spec accounts.json
 ```
 
 >**Note:** Instructure has started to timeout the download script after so many downloads, after that you will get 202 errors. It's recommended to either download them individually or use a downloading extension in your browser to download all the spec files.
 
-For more information on using this command  run `canvas_api_builder update-spec-files --help`
+For more information on using this command run `canopy_build fetch-specs --help`
 
 ### Build API from spec file
 
 **Synchronous**
 ```bash
-canvas_api_builder build-api-from-specfile --specfile specs/accounts.json --output-folder apis/
+canopy_build build --spec specs/accounts.json --output-dir apis/
 ```
 
 **Asynchronous**
 ```bash
-canvas_api_builder build-api-from-specfile --specfile specs/accounts.json --output-folder apis/ --generate-async
+canopy_build build --spec specs/accounts.json --output-dir apis/ --async
 ```
 
 >**Note:** The API modules are generated using a template. Make sure the code is valid before using it.
 
-For more information on using this command  run `canvas_api_builder build-api-from-specfile --help`
+For more information on using this command run `canopy_build build --help`
 
 ### Build Canvas client file
 ```bash
-canvas_api_builder build-canvas-client-file --apis-folder apis/
+canopy_build client --apis-dir apis/
 ```
 
 ### Build all APIs
 >**Note**: It is generally not recommended to generate all the APIs at this time. There are many API endpoints that have issues that will cause the loading of the client to fail. Only after you correct *all* the issues within the API files will the client load without issues.
 
 ```bash
-canvas_api_builder build-all-apis --specs-folder specs/ --output-folder apis/
+canopy_build build-all --specs-dir specs/ --output-dir apis/
 ```
 
-For more information on using this command  run `canvas_api_builder build-all-apis --help`
+For more information on using this command run `canopy_build build-all --help`
+
+### Rebuild APIs
+
+```bash
+canopy_build rebuild --specs-dir specs/ --apis-dir apis/
+```
+
+For more information on using this command run `canopy_build rebuild --help`
 
 ### Excluding specs from processing
 
-Some Canvas spec files contain malformed parameters that cause code generation to fail or produce invalid Python. You can maintain a local TOML file to exclude these specs from `build-all-apis`, `rebuild-apis`, and `update-spec-files`.
+Some Canvas spec files contain malformed parameters that cause code generation to fail or produce invalid Python. You can maintain a local TOML file to exclude these specs from `build-all`, `rebuild`, and `fetch-specs`.
 
 Copy the provided example file to get started:
 
@@ -152,18 +160,18 @@ excluded = [
 Pass it to any command that processes multiple specs via `--exclude-file`:
 
 ```bash
-canvas_api_builder update-spec-files \
-    --specs-folder specs/ \
+canopy_build fetch-specs \
+    --specs-dir specs/ \
     --exclude-file excluded_specs.toml
 
-canvas_api_builder build-all-apis \
-    --specs-folder specs/ \
-    --output-folder apis/ \
+canopy_build build-all \
+    --specs-dir specs/ \
+    --output-dir apis/ \
     --exclude-file excluded_specs.toml
 
-canvas_api_builder rebuild-apis \
-    --specs-folder specs/ \
-    --apifolder-path apis/ \
+canopy_build rebuild \
+    --specs-dir specs/ \
+    --apis-dir apis/ \
     --exclude-file excluded_specs.toml
 ```
 
@@ -197,7 +205,7 @@ canopy_docs generate-all --apis-folder apis/
 
 ### Excluding specs from the index
 
-The same `excluded_specs.toml` file used with `canvas_api_builder` can be passed to `generate-index` and `generate-all` to keep excluded specs out of the generated documentation:
+The same `excluded_specs.toml` file used with `canopy_build` can be passed to `generate-index` and `generate-all` to keep excluded specs out of the generated documentation:
 
 ```bash
 canopy_docs generate-index \
@@ -300,7 +308,7 @@ Now with 295 students:
 ```bash
 Total time (synchronous): 50.22708906700427
 Total time (asynchronous): 5.239625043002889
-Total time (asynchronous print as completed): 4.629659270998673
+Total time (asynchronous print as completed): 4.629659270998657
 ```
 
 ## Connection management

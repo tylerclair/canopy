@@ -79,56 +79,58 @@ def _snake_to_pascal(name: str) -> str:
 @click.command()
 @click.option(
     "-s",
-    "--specfile",
+    "--spec",
     required=True,
     type=click.File(mode="r", encoding="utf-8"),
-    help="The json specfile.",
+    help="The JSON spec file.",
 )
 @click.option(
-    "-a",
-    "--api-name",
+    "-n",
+    "--name",
     type=str,
-    help="The name of the api class. Defaults to specfile base name",
+    help="The name of the API class. Defaults to spec file base name.",
 )
 @click.option(
     "-o",
-    "--output-folder",
+    "--output-dir",
     required=True,
     type=click.Path(file_okay=False, writable=True, path_type=Path),
-    help="Path to output the API file to.",
+    help="Directory to output the API file to.",
 )
-@click.option("--generate-async", is_flag=True, default=False, help="Generate async version")
-def build_api_from_specfile(
-    specfile: IO[str],
-    api_name: str | None,
-    output_folder: Path,
+@click.option(
+    "--async", "generate_async", is_flag=True, default=False, help="Generate async version."
+)
+def build(
+    spec: IO[str],
+    name: str | None,
+    output_dir: Path,
     generate_async: bool,
 ) -> None:
-    """Build the specified API from the given spec file."""
-    spec_path = Path(specfile.name)
+    """Build a single API file from a spec file."""
+    spec_path = Path(spec.name)
     base_name = spec_path.name
     api_file_name = spec_path.stem
 
-    if api_name is None:
-        api_name = _snake_to_pascal(api_file_name)
+    if name is None:
+        name = _snake_to_pascal(api_file_name)
 
-    spec = json.load(specfile)
+    api_spec = json.load(spec)
     env = get_jinja_env()
 
     if not generate_async:
-        click.echo(f"Generating code for specfile: {base_name}")
-        output_path = output_folder / f"{api_file_name}.py"
+        click.echo(f"Generating code for spec: {base_name}")
+        output_path = output_dir / f"{api_file_name}.py"
         api_template = env.get_template("canopy_api.py.jinja2")
         output_path.write_text(
-            api_template.render(spec=spec, api_name=api_name, api_file_name=api_file_name)
+            api_template.render(spec=api_spec, api_name=name, api_file_name=api_file_name)
         )
     else:
-        click.echo(f"Generating async code for specfile: {base_name}")
+        click.echo(f"Generating async code for spec: {base_name}")
         async_file_name = f"{api_file_name}_async"
-        output_path = output_folder / f"{async_file_name}.py"
+        output_path = output_dir / f"{async_file_name}.py"
         api_template = env.get_template("canopy_api_async.py.jinja2")
         output_path.write_text(
-            api_template.render(spec=spec, api_name=api_name, api_file_name=async_file_name)
+            api_template.render(spec=api_spec, api_name=name, api_file_name=async_file_name)
         )
 
 
@@ -136,20 +138,20 @@ def build_api_from_specfile(
 @click.command()
 @click.option(
     "-a",
-    "--apis-folder",
+    "--apis-dir",
     required=True,
     type=click.Path(file_okay=False, readable=True, path_type=Path),
-    help="Folder with API files",
+    help="Directory containing generated API files.",
 )
-def build_canvas_client_file(apis_folder: Path) -> None:
-    """Build the Canvas client file based on the generated APIs."""
+def client(apis_dir: Path) -> None:
+    """Build the Canvas client file based on the generated API files."""
     excluded_files = {"canvas_client.py", "__init__.py"}
-    click.echo(f"Generating canvas_client.py file in {apis_folder.resolve()}")
+    click.echo(f"Generating canvas_client.py in {apis_dir.resolve()}")
 
-    api_module_path = str(apis_folder).rstrip("/").replace("/", ".") + "."
+    api_module_path = str(apis_dir).rstrip("/").replace("/", ".") + "."
 
     generated_api_files = []
-    for api_path in apis_folder.iterdir():
+    for api_path in apis_dir.iterdir():
         if api_path.name not in excluded_files and api_path.suffix == ".py":
             generated_api_files.append(
                 {
@@ -169,22 +171,24 @@ def build_canvas_client_file(apis_folder: Path) -> None:
 
 
 # Build All APIs
-@click.command()
+@click.command("build-all")
 @click.option(
     "-s",
-    "--specs-folder",
+    "--specs-dir",
     required=True,
     type=click.Path(file_okay=False, readable=True, path_type=Path),
-    help="Path for specfiles",
+    help="Directory containing spec files.",
 )
 @click.option(
     "-o",
-    "--output-folder",
+    "--output-dir",
     required=True,
     type=click.Path(file_okay=False, writable=True, path_type=Path),
-    help="Path to output the API file to.",
+    help="Directory to output the generated API files to.",
 )
-@click.option("--generate-async", is_flag=True, default=False, help="Generate async version")
+@click.option(
+    "--async", "generate_async", is_flag=True, default=False, help="Generate async versions."
+)
 @click.option(
     "-e",
     "--exclude-file",
@@ -193,56 +197,47 @@ def build_canvas_client_file(apis_folder: Path) -> None:
     help="TOML file listing spec filenames to exclude from processing.",
 )
 @click.pass_context
-def build_all_apis(
+def build_all(
     ctx: click.Context,
-    specs_folder: Path,
-    output_folder: Path,
+    specs_dir: Path,
+    output_dir: Path,
     generate_async: bool,
     exclude_file: Path | None,
 ) -> None:
-    """Build all APIs from downloaded specfiles."""
+    """Build all API files from a directory of spec files."""
     excluded = load_excluded_specs(exclude_file)
     if excluded:
         click.echo(f"Excluding {len(excluded)} spec(s): {', '.join(sorted(excluded))}")
 
-    for spec_path in specs_folder.iterdir():
+    for spec_path in specs_dir.iterdir():
         if spec_path.name in excluded:
             click.echo(f"Skipping excluded spec: {spec_path.name}")
             continue
-        if not generate_async:
-            with spec_path.open() as f:
-                ctx.invoke(
-                    build_api_from_specfile,
-                    specfile=f,
-                    api_name=None,
-                    output_folder=output_folder,
-                )
-        else:
-            with spec_path.open() as f:
-                ctx.invoke(
-                    build_api_from_specfile,
-                    specfile=f,
-                    api_name=None,
-                    output_folder=output_folder,
-                    generate_async=True,
-                )
+        with spec_path.open() as f:
+            ctx.invoke(
+                build,
+                spec=f,
+                name=None,
+                output_dir=output_dir,
+                generate_async=generate_async,
+            )
 
 
 # Rebuild APIs
 @click.command()
 @click.option(
     "-s",
-    "--specs-folder",
+    "--specs-dir",
     required=True,
     type=click.Path(file_okay=False, readable=True, path_type=Path),
-    help="Path for specfiles",
+    help="Directory containing spec files.",
 )
 @click.option(
     "-a",
-    "--apifolder-path",
+    "--apis-dir",
     required=True,
     type=click.Path(file_okay=False, writable=True, path_type=Path),
-    help="Path for API files",
+    help="Directory containing generated API files to rebuild.",
 )
 @click.option(
     "-e",
@@ -252,19 +247,19 @@ def build_all_apis(
     help="TOML file listing spec filenames to exclude from processing.",
 )
 @click.pass_context
-def rebuild_apis(
+def rebuild(
     ctx: click.Context,
-    specs_folder: Path,
-    apifolder_path: Path,
+    specs_dir: Path,
+    apis_dir: Path,
     exclude_file: Path | None,
 ) -> None:
-    """Rebuild all APIs from downloaded specfiles."""
+    """Rebuild all API files from existing spec files."""
     excluded_files = {"canvas_client.py", "__init__.py"}
     excluded_specs = load_excluded_specs(exclude_file)
     if excluded_specs:
         click.echo(f"Excluding {len(excluded_specs)} spec(s): {', '.join(sorted(excluded_specs))}")
 
-    for api_path in apifolder_path.iterdir():
+    for api_path in apis_dir.iterdir():
         if not api_path.is_file() or api_path.name in excluded_files:
             continue
         is_async = "async" in api_path.stem
@@ -273,31 +268,30 @@ def rebuild_apis(
         if spec_filename in excluded_specs:
             click.echo(f"Skipping excluded spec: {spec_filename}")
             continue
-        spec_path = specs_folder / spec_filename
+        spec_path = specs_dir / spec_filename
         with spec_path.open() as f:
             ctx.invoke(
-                build_api_from_specfile,
-                specfile=f,
-                api_name=None,
-                output_folder=apifolder_path,
+                build,
+                spec=f,
+                name=None,
+                output_dir=apis_dir,
                 generate_async=is_async,
             )
 
 
-# Update spec files
-@click.command()
+# Fetch spec files
+@click.command("fetch-specs")
 @click.option(
     "-s",
-    "--specs-folder",
+    "--specs-dir",
     required=True,
     type=click.Path(file_okay=False, readable=True, path_type=Path),
-    help="Path for specfiles",
+    help="Directory to save downloaded spec files.",
 )
 @click.option(
-    "-n",
-    "--spec-name",
+    "--spec",
     default=None,
-    help="Download a single spec file by name (e.g. assignments.json)",
+    help="Download a single spec file by name (e.g. assignments.json).",
 )
 @click.option(
     "-e",
@@ -306,17 +300,15 @@ def rebuild_apis(
     type=click.Path(exists=True, dir_okay=False, readable=True, path_type=Path),
     help="TOML file listing spec filenames to exclude from downloading.",
 )
-def update_spec_files(specs_folder: Path, spec_name: str | None, exclude_file: Path | None) -> None:
-    """Update spec files from Instructure API docs."""
+def fetch_specs(specs_dir: Path, spec: str | None, exclude_file: Path | None) -> None:
+    """Fetch spec files from the Instructure Canvas API docs."""
     base_url = "https://canvas.instructure.com/doc/api/"
     excluded = load_excluded_specs(exclude_file)
 
-    if spec_name:
-        spec_names = [spec_name]
+    if spec:
+        spec_names = [spec]
     else:
-        spec_names = [
-            spec["path"][1:] for spec in httpx.get(f"{base_url}api-docs.json").json()["apis"]
-        ]
+        spec_names = [s["path"][1:] for s in httpx.get(f"{base_url}api-docs.json").json()["apis"]]
 
     if excluded:
         before = len(spec_names)
@@ -332,7 +324,7 @@ def update_spec_files(specs_folder: Path, spec_name: str | None, exclude_file: P
             r = httpx.get(f"{base_url}{name}")
 
             if r.status_code == 200:
-                spec_path = specs_folder / name
+                spec_path = specs_dir / name
                 spec_path.write_bytes(r.content)
                 click.echo(f"  ✓ Updated {spec_path}")
                 break
@@ -359,11 +351,11 @@ def cli() -> None:
     pass
 
 
-cli.add_command(build_api_from_specfile)
-cli.add_command(build_canvas_client_file)
-cli.add_command(build_all_apis)
-cli.add_command(update_spec_files)
-cli.add_command(rebuild_apis)
+cli.add_command(build)
+cli.add_command(build_all)
+cli.add_command(rebuild)
+cli.add_command(client)
+cli.add_command(fetch_specs)
 
 if __name__ == "__main__":
     cli()
