@@ -42,7 +42,7 @@ class {{api_name}}Async:
 
     {% for api in spec.apis %}
     {% for op in api.operations %}
-    async def {{op.nickname}}(self{% if op.parameters|length > 0 %}, {% endif %}{{op.parameters|service_param_string}}, as_user_id=None, do_not_process=None, no_data=None):
+    async def {{op.nickname}}(self{% if op.parameters|length > 0 %}, {% endif %}{{op.parameters|service_param_string}}, as_user_id=None, do_not_process=None, no_data=None, per_page=None, page=None):
         """
         {{op.summary}}{% if not op.summary.endswith('.') %}.{% endif %}
 
@@ -54,6 +54,8 @@ class {{api_name}}Async:
         Returns:
             {{ "list[dict]: All pages of results, auto-fetched." if op.type == 'array' else "dict | list[dict]: Response data (auto-paginated if list)." if op.type == 'void' else "dict: The " ~ op.type ~ " object." }}
             If do_not_process=True: httpx.Response. If no_data=True: int (HTTP status code).
+            **kwargs: Extra Canvas query parameters passed directly to the request
+                (e.g. per_page=50, page=2). Explicit values override session defaults.
         """
         client = self.client
         data = {}
@@ -72,7 +74,7 @@ class {{api_name}}Async:
         if as_user_id is not None:
             params["as_user_id"] = as_user_id
         return await client.async_{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params, 
-            do_not_process=do_not_process, no_data=no_data{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 
+            do_not_process=do_not_process, no_data=no_data, per_page=per_page, page=page{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 
             'void' %}, poly_response=True{% endif %}{% if op.type not in ['array', 'void'] and op.type[0] == op.type[0].upper() 
             %}, single_item=True{% endif %})
 

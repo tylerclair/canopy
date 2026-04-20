@@ -103,8 +103,9 @@ class CanvasSession:
 
     # ── Core request dispatcher ─────────────────────────────────────
 
-    def _pagination_params(self, params: dict[str, Any] | None) -> dict[str, Any]:
-        return {**(params or {}), "per_page": self.max_per_page}
+    def _pagination_params(self, params: dict[str, Any] | None, **extra: Any) -> dict[str, Any]:
+        base = {"per_page": self.max_per_page}
+        return {**base, **(params or {}), **extra}
 
     def _needs_pagination(self, kwargs: dict[str, Any]) -> bool:
         return kwargs.get("all_pages", False) or kwargs.get("poly_response", False)
@@ -122,8 +123,18 @@ class CanvasSession:
         no_data: bool = False,
         poly_response: bool = False,
         force_urlencode_data: bool = False,
+        per_page: int | None = None,
+        page: int | None = None,
     ) -> Any:
         """Base Canvas sync request method."""
+        if per_page is not None or page is not None:
+            all_pages = False
+            poly_response = False
+        if per_page is not None:
+            params = {**(params or {}), "per_page": per_page}
+        if page is not None:
+            params = {**(params or {}), "page": page}
+
         if force_urlencode_data and data:
             uri = uri + "?" + urllib.parse.urlencode(data)
             data = None
@@ -168,8 +179,18 @@ class CanvasSession:
         no_data: bool = False,
         poly_response: bool = False,
         force_urlencode_data: bool = False,
+        per_page: int | None = None,
+        page: int | None = None,
     ) -> Any:
         """Base Canvas async request method."""
+        if per_page is not None or page is not None:
+            all_pages = False
+            poly_response = False
+        if per_page is not None:
+            params = {**(params or {}), "per_page": per_page}
+        if page is not None:
+            params = {**(params or {}), "page": page}
+
         if force_urlencode_data and data:
             uri = uri + "?" + urllib.parse.urlencode(data)
             data = None
@@ -204,7 +225,7 @@ class CanvasSession:
     # ── Sync convenience methods ────────────────────────────────────
 
     def get(self, url: str, params: dict[str, Any] | None = None, **kwargs: Any) -> Any:
-        if self._needs_pagination(kwargs):
+        if self._needs_pagination(kwargs) and "per_page" not in kwargs:
             params = self._pagination_params(params)
         return self.base_request("GET", url, params=params, **kwargs)
 
@@ -220,7 +241,7 @@ class CanvasSession:
     # ── Async convenience methods ───────────────────────────────────
 
     async def async_get(self, url: str, params: dict[str, Any] | None = None, **kwargs: Any) -> Any:
-        if self._needs_pagination(kwargs):
+        if self._needs_pagination(kwargs) and "per_page" not in kwargs:
             params = self._pagination_params(params)
         return await self.async_base_request("GET", url, params=params, **kwargs)
 

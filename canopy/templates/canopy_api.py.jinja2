@@ -39,7 +39,7 @@ class {{api_name}}:
 
     {% for api in spec.apis %}
     {% for op in api.operations %}
-    def {{op.nickname}}(self{% if op.parameters|length > 0 %}, {% endif %}{{op.parameters|service_param_string}}, as_user_id=None, do_not_process=None, no_data=None):
+    def {{op.nickname}}(self{% if op.parameters|length > 0 %}, {% endif %}{{op.parameters|service_param_string}}, as_user_id=None, do_not_process=None, no_data=None, per_page=None, page=None):
         """
         {{op.summary}}{% if not op.summary.endswith('.') %}.{% endif %}
 
@@ -69,7 +69,7 @@ class {{api_name}}:
         if as_user_id is not None:
             params["as_user_id"] = as_user_id
         return client.{{op.method|lower}}(f"/api{{api.path}}", data=data, params=params, do_not_process=do_not_process, 
-            no_data=no_data{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 'void' %}, poly_response=True{% 
+            no_data=no_data, per_page=per_page, page=page{% if op.type == 'array' %}, all_pages=True{% endif %}{% if op.type == 'void' %}, poly_response=True{% 
             endif %}{% if op.type not in ['array', 'void'] and op.type[0] == op.type[0].upper() %}, single_item=True{% endif %})
 
     {% endfor %}
