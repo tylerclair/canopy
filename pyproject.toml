@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "canopy"
-version = "2026.04.20"
+version = "2026.05.08"
 description = "Helper for Instructure Canvas API"
 readme = "README.md"
 requires-python = ">=3.12"
