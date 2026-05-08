@@ -98,13 +98,13 @@ You can use the `canopy_build` script to download the spec files, generate the C
 **Downloading or updating all spec files**
 
 ```bash
-canopy_build fetch-specs --specs-dir specs/
+canopy_build fetch-specs --specs-dir specs/ --base-url https://yourschool.instructure.com
 ```
 
 **Download or update an individual spec file**
 
 ```bash
-canopy_build fetch-specs --specs-dir specs/ --spec accounts.json
+canopy_build fetch-specs --specs-dir specs/ --base-url https://yourschool.instructure.com --spec accounts.json
 ```
 
 > **Note:** Instructure has started to timeout the download script after so many downloads, after that you will get 202 errors. It's recommended to either download them individually or use a downloading extension in your browser to download all the spec files.
@@ -178,6 +178,7 @@ Pass it to any command that processes multiple specs via `--exclude-file`:
 ```bash
 canopy_build fetch-specs \
     --specs-dir specs/ \
+    --base-url https://yourschool.instructure.com \
     --exclude-file excluded_specs.toml
 
 canopy_build build-all \
@@ -238,7 +239,7 @@ canopy_docs generate-all \
 ```python
 from canvas_client import CanvasClient
 
-canvas_url = "https://abc.instructure.com"
+canvas_url = "https://yourschool.instructure.com"
 token = "your_token_here"
 
 client = CanvasClient(canvas_url, token, max_per_page=100)
@@ -281,7 +282,7 @@ import asyncio
 from canvas_client import CanvasClient
 from time import perf_counter
 
-canvas_url = "https://abc.instructure.com"
+canvas_url = "https://yourschool.instructure.com"
 token = "your_token_here"
 
 client = CanvasClient(canvas_url, token, max_per_page=100)

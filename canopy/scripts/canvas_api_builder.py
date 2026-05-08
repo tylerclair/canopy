@@ -300,9 +300,18 @@ def rebuild(
     type=click.Path(exists=True, dir_okay=False, readable=True, path_type=Path),
     help="TOML file listing spec filenames to exclude from downloading.",
 )
-def fetch_specs(specs_dir: Path, spec: str | None, exclude_file: Path | None) -> None:
+@click.option(
+    "-b",
+    "--base-url",
+    default="https://canvas.instructure.com",
+    show_default=True,
+    help="Your Canvas instance URL (e.g. https://yourschool.instructure.com). The /doc/api/ path is appended automatically.",
+)
+def fetch_specs(
+    specs_dir: Path, spec: str | None, exclude_file: Path | None, base_url: str
+) -> None:
     """Fetch spec files from the Instructure Canvas API docs."""
-    base_url = "https://canvas.instructure.com/doc/api/"
+    base_url = base_url.rstrip("/") + "/doc/api/"
     excluded = load_excluded_specs(exclude_file)
 
     if spec:
