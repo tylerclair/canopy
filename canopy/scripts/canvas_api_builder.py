@@ -305,7 +305,8 @@ def rebuild(
     "--base-url",
     default="https://canvas.instructure.com",
     show_default=True,
-    help="Your Canvas instance URL (e.g. https://yourschool.instructure.com). The /doc/api/ path is appended automatically.",
+    help="Your Canvas instance URL (e.g. https://yourschool.instructure.com). "
+    "The /doc/api/ path is appended automatically.",
 )
 def fetch_specs(
     specs_dir: Path, spec: str | None, exclude_file: Path | None, base_url: str
